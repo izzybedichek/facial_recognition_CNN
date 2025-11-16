@@ -1,4 +1,4 @@
-
+import yaml
 from torchvision.datasets import ImageFolder
 import torchvision.transforms as transforms
 
@@ -13,5 +13,5 @@ transform = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-dataset = ImageFolder('data/train', transform=transform)
+dataset_train = ImageFolder(config['data']['train_dir'], transform=transform)
 

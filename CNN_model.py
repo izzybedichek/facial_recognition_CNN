@@ -1,10 +1,17 @@
 # https://www.datacamp.com/tutorial/pytorch-cnn-tutorial
-
+import torch
+import yaml
 from torch import nn
 import torchvision
 import torch.nn.functional as F
 import torchmetrics
-import dataset, config from CNN_data_loading.py
+import CNN_data_loading
+from torch.utils.data import DataLoader
+import torch.optim as optim
+
+dataset_train = CNN_data_loading.dataset_train
+config = CNN_data_loading.config
+print("hello?")
 
 class CNN(nn.Module):
    def __init__(self, in_channels, num_classes):
@@ -49,11 +56,60 @@ class CNN(nn.Module):
        x = self.fc1(x)            # Apply fully connected layer
        return x
 
-# Define the loss function
+train_loader = DataLoader(dataset_train, batch_size= config['data']['batch_size'], shuffle=True, num_workers= config['data']['num_workers'])
+
+print(f"Train samples: {len(dataset_train)}")
+print(f"Number of classes: {len(dataset_train.classes)}")
+
+model = CNN(in_channels=1, num_classes=len(CNN_data_loading.dataset_train.classes))
+
 criterion = nn.CrossEntropyLoss()
-
-# Define the optimizer
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr= config['training']['learning_rate'])
 
 
+def train_one_epoch(model, loader, optimizer, criterion, device):
+    model.train()
+    total_loss = 0.0
+    correct = 0
+    total = 0
+
+    for batch_idx, (images, labels) in enumerate(loader):
+        images, labels = images.to(device), labels.to(device)
+
+        # Forward pass
+        optimizer.zero_grad()
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+
+        # Backward pass
+        loss.backward()
+        optimizer.step()
+
+        # Calculate metrics
+        total_loss += loss.item() * images.size(0)
+        pred = outputs.argmax(dim=1)
+        correct += (pred == labels).sum().item()
+        total += labels.size(0)
+
+        # Print progress every 10 batches
+        if batch_idx % 10 == 0:
+            print(f"  Batch {batch_idx}/{len(loader)}: loss={loss.item():.4f}")
+
+    avg_loss = total_loss / total
+    accuracy = correct / total
+    return avg_loss, accuracy
+
+print("\n" + "="*50)
+print("STARTING ONE EPOCH TEST")
+print("="*50 + "\n")
+
+print("Training...")
+train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion)
+
+print("\n" + "="*50)
+print("RESULTS")
+print("="*50)
+print(f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f} ({train_acc*100:.2f}%)")
+print("="*50)
+print("\n✓ Test completed successfully!")
 
