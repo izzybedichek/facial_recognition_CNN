@@ -1,0 +1,50 @@
+# Model Configuration
+model:
+  name: "CNN"
+  num_classes: 7
+  pretrained: false
+  dropout: 0.5
+
+# Data Configuration
+data:
+  train_dir: "data/train"
+  val_dir: "data/val"
+  test_dir: "data/test"
+  batch_size: 32
+  num_workers: 4
+  image_size: [48, 48]
+
+# Training Configuration
+training:
+  epochs: 100
+  learning_rate: 0.001
+  optimizer: "Adam"
+  weight_decay: 0.0001
+
+# Data Augmentation
+augmentation:
+  train:
+    random_crop: true
+    horizontal_flip: true
+    rotation: 15
+    color_jitter:
+      brightness: 0.2
+      contrast: 0.2
+      saturation: 0.2
+  val:
+    center_crop: true
+
+# Paths
+paths:
+  checkpoint_dir: "checkpoints"
+  log_dir: "logs"
+  results_dir: "results"
+
+# Hardware
+device: "cpu"
+seed: 42
+
+# Logging
+logging:
+  log_interval: 10  # Log every 10 batches
+  save_interval: 5  # Save checkpoint every 5 epochs
