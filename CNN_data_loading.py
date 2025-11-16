@@ -19,15 +19,15 @@ transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1), # making sure everything is grayscale
 ])
 
-dataset_train = ImageFolder(config['data']['train_dir_emily'], transform=transform)
-dataset_test  = ImageFolder(config['data']['test_dir_emily'], transform=transform)
+dataset_train = ImageFolder(config['data']['train_dir_izzy'], transform=transform)
+dataset_test  = ImageFolder(config['data']['test_dir_izzy'], transform=transform)
 
 print(f"Train dataset size: {len(dataset_train)}")
 print(f"Test dataset size: {len(dataset_test)}")
 
 
 batch_size = 32
-train_loader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
+train_loader = DataLoader(dataset_train, batch_size=config["data"]["batch_size"], shuffle=True)
 
 print('train size:', len(train_loader))
 

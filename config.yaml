@@ -2,8 +2,7 @@
 model:
   name: "CNN"
   num_classes: 7
-  pretrained: false
-  dropout: 0.5
+  dropout: 0.3
 
 # Data Configuration
 data:
@@ -11,13 +10,12 @@ data:
   test_dir_izzy: "/Users/izzybedichek/Desktop/imp/grad_school/machine_learning/facial_recognition_CNN/data/test"
   train_dir_emily: "/Users/shuang/Desktop/0_Emily/3_Fall25/ML/Project 2/data/train"
   test_dir_emily: "/Users/shuang/Desktop/0_Emily/3_Fall25/ML/Project 2/data/test"
-  batch_size: 32
-  num_workers: 0
+  batch_size: 64
   image_size: [48, 48]
 
 # Training Configuration
 training:
-  epochs: 100
+  epochs: 10
   learning_rate: 0.001
   optimizer: "Adam" # not connected to code yet
   weight_decay: 0.0001
