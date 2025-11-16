@@ -7,8 +7,10 @@ model:
 
 # Data Configuration
 data:
-  train_dir: "/Users/izzybedichek/Desktop/imp/grad_school/machine_learning/facial_recognition_CNN/data/train"
-  test_dir: "/Users/izzybedichek/Desktop/imp/grad_school/machine_learning/facial_recognition_CNN/data/test"
+  train_dir_izzy: "/Users/izzybedichek/Desktop/imp/grad_school/machine_learning/facial_recognition_CNN/data/train"
+  test_dir_izzy: "/Users/izzybedichek/Desktop/imp/grad_school/machine_learning/facial_recognition_CNN/data/test"
+  train_dir_emily: "/Users/shuang/Desktop/0_Emily/3_Fall25/ML/Project 2/data/train"
+  test_dir_emily: "/Users/shuang/Desktop/0_Emily/3_Fall25/ML/Project 2/data/test"
   batch_size: 32
   num_workers: 0
   image_size: [48, 48]

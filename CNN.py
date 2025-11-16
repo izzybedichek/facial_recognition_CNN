@@ -1,8 +1,9 @@
 import yaml
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
+from torchvision import transforms
 import matplotlib.pyplot as plt
+
 
 def load_config(config_path):
     with open(config_path, 'r') as f:
@@ -11,16 +12,20 @@ def load_config(config_path):
 
 config = load_config('config.yaml')
 
+# Define file paths
+emily_path = "/Users/shuang/Desktop/0_Emily/3_Fall25/ML/Project 2"
+izzy_path = ""
+
 # Data tranformations: 
 # ToTensor: converts image from (height x width x channels) to (C x H x W) and normalizes pixel values to [0, 1]
 #            converts image to pyTorch tensor
 transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Grayscale(num_output_channels=1), # making sure everything is grayscale
 ])
 
-dataset_train = ImageFolder(config['data']['train_dir_emily'], transform=transform)
-dataset_test  = ImageFolder(config['data']['test_dir_emily'], transform=transform)
+# Load datasets and apply transformations
+dataset_train = ImageFolder(emily_path + '/data/train', transform=transform)
+dataset_test = ImageFolder(emily_path + '/data/test', transform=transform)
 
 print(f"Train dataset size: {len(dataset_train)}")
 print(f"Test dataset size: {len(dataset_test)}")
@@ -36,4 +41,5 @@ print('train size:', len(train_loader))
 # Labels shape: (batch_size)
 images, labels = next(iter(train_loader))
 print('Batch shape:', images.shape, 'Labels shape:', labels.shape)
+
 
