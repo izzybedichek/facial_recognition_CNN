@@ -11,6 +11,7 @@ config = load_config('config.yaml')
 
 transform = transforms.Compose([
     transforms.ToTensor(),
+    transforms.Grayscale(num_output_channels=1), # making sure everything is grayscale
 ])
 
 dataset_train = ImageFolder(config['data']['train_dir'], transform=transform)

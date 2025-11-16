@@ -11,7 +11,7 @@ data:
   val_dir: "data/val"
   test_dir: "data/test"
   batch_size: 32
-  num_workers: 4
+  num_workers: 0
   image_size: [48, 48]
 
 # Training Configuration

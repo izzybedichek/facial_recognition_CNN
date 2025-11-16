@@ -104,7 +104,7 @@ print("STARTING ONE EPOCH TEST")
 print("="*50 + "\n")
 
 print("Training...")
-train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion)
+train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, config["device"])
 
 print("\n" + "="*50)
 print("RESULTS")
