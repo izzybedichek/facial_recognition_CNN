@@ -1,5 +1,6 @@
 # source: https://discuss.pytorch.org/t/plotting-loss-curve/42632
 import matplotlib.pyplot as plt
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 def train_and_plot(model, train_loader, optimizer, criterion, config):
     """
@@ -22,14 +23,18 @@ def train_and_plot(model, train_loader, optimizer, criterion, config):
         print(f"\nEpoch {epoch + 1}/{config['training']['epochs']}")
 
         # Train for one epoch
-        train_loss, train_acc = train_one_epoch(
+        avg_loss, avg_acc, precision, recall, f1 = train_one_epoch(
             model, train_loader, optimizer, criterion, config["device"]
         )
 
         # Store the loss
-        loss_values.append(train_loss)
+        loss_values.append(avg_loss)
 
-        print(f"Loss={train_loss:.4f}, Acc={train_acc:.4f} ({train_acc * 100:.2f}%)")
+        print(f"Loss={avg_loss:.4f}, "
+              f"Acc={avg_acc:.4f} ({avg_acc * 100:.2f}%), "
+              f"Precision={precision:.4f}, "
+              f"Recall={recall:.4f}, "
+              f"F1={f1:.4f}")
 
     # Plot the training loss
     plot_training_loss(loss_values)
@@ -68,6 +73,8 @@ def train_one_epoch(model, train_loader, optimizer, criterion, device):
     total_loss = 0
     correct = 0
     total = 0
+    all_labels = []
+    all_preds = []
 
     for images, labels in train_loader:
         images, labels = images.to(device), labels.to(device)
@@ -88,8 +95,14 @@ def train_one_epoch(model, train_loader, optimizer, criterion, device):
         _, predicted = outputs.max(1)
         total += labels.size(0)
         correct += predicted.eq(labels).sum().item()
+        all_labels.extend(labels.cpu().numpy())
+        all_preds.extend(predicted.cpu().numpy())
 
     avg_loss = total_loss / len(train_loader)
     avg_acc = correct / total
 
-    return avg_loss, avg_acc
+    precision = precision_score(all_labels, all_preds, average='weighted', zero_division=0)
+    recall = recall_score(all_labels, all_preds, average='weighted', zero_division=0)
+    f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0)
+
+    return avg_loss, avg_acc, precision, recall, f1
