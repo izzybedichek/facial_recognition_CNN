@@ -15,7 +15,7 @@ data:
 
 # Training Configuration
 training:
-  epochs: 10
+  epochs: 15
   learning_rate: 0.001
   optimizer: "Adam" # not connected to code yet
   weight_decay: 0.0001
@@ -27,7 +27,7 @@ paths:
   results_dir: "results"
 
 # Hardware
-device: "cpu"
+device: "mps"
 seed: 42
 
 # Logging

@@ -12,6 +12,7 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 
 dataset_train = CNN_data_loading.train_loader
+dataset_val = CNN_data_loading.val_loader
 config = CNN_data_loading.config
 
 class CNN(nn.Module):
@@ -39,7 +40,7 @@ class CNN(nn.Module):
         x = self.pool(x)
         x = F.relu(self.conv2(x))
         x = self.pool(x)
-        x = F.relu(self.conv3(x))
+        x = F.leaky_relu(self.conv3(x))
         x = self.pool(x)
         x = x.reshape(x.shape[0], -1)
 
@@ -51,8 +52,8 @@ class CNN(nn.Module):
 model = CNN(in_channels= 1, num_classes= config["model"]["num_classes"])
 model = model.to(config['device'])
 criterion = nn.CrossEntropyLoss() # look into
-optimizer = optim.Adam(model.parameters(), lr = config['training']['learning_rate'])
+optimizer = optim.Adam(model.parameters(), lr = config['training']['learning_rate'], weight_decay=1e-4)
 
-loss_values = loss_graph.train_and_plot(model, dataset_train, optimizer, criterion, config)
+loss_values = loss_graph.train_and_plot(model, dataset_train, dataset_val, optimizer, criterion, config)
 
 

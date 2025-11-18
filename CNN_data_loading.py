@@ -1,4 +1,5 @@
 import yaml
+import torch
 import numpy as np
 
 from torchvision.datasets import ImageFolder
@@ -19,21 +20,30 @@ config = load_config('config.yaml')
 ToTensor: converts image from (height x width x channels) to (C x H x W) and normalizes pixel values to [0, 1]
           converts image to pyTorch tensor"""
 
-transform = transforms.Compose([
-    transforms.ToTensor(),
+train_transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1), # making sure everything is grayscale
+    transforms.ToTensor(), # to tensor must be last
+])
+
+val_transform = transforms.Compose([
+    transforms.ToTensor(), # to tensor must be last
 ])
 
 # Applying transformations to dataset
-dataset_train = ImageFolder(config['data']['train_dir_izzy'], transform=transform)
-dataset_test  = ImageFolder(config['data']['test_dir_izzy'], transform=transform)
+dataset_train_val = ImageFolder(config['data']['train_dir_izzy'], transform=train_transform)
+dataset_test  = ImageFolder(config['data']['test_dir_izzy'], transform=val_transform)
+
+dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [.9, .1])
 
 # Verifying we have the whole dataset
 #print(f"Train dataset size: {len(dataset_train)}")
 #print(f"Test dataset size: {len(dataset_test)}")
 
 # Weighted random sampling for testing data
-class_counts = np.bincount(dataset_train.targets)
+train_indices = dataset_train.indices
+train_targets = [dataset_train_val.targets[i] for i in train_indices]
+
+class_counts = np.bincount(train_targets)
 
 #print(class_counts)
 
@@ -41,7 +51,7 @@ class_weights = 1.0 / class_counts
 
 #print(class_weights)
 
-sample_weights = [class_weights[t] for t in dataset_train.targets]
+sample_weights = [class_weights[t] for t in train_targets]
 
 sampler = WeightedRandomSampler(weights = sample_weights,
                                 num_samples = len(sample_weights),
@@ -52,6 +62,10 @@ train_loader = DataLoader(dataset_train,
                           sampler = sampler,
                           batch_size = config["data"]["batch_size"],
                           shuffle = False) # Shuffle OR sampler, not both
+
+val_loader = DataLoader(dataset_val,
+                          batch_size = config["data"]["batch_size"])
+
 
 # Verifying all the data got into the loader
 #print('train size:', len(train_loader))
