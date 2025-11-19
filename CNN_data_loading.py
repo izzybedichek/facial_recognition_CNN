@@ -4,8 +4,10 @@ import numpy as np
 
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
+from torchvision import transforms
+from torchvision.transforms import v2
 from torch.utils.data.sampler import WeightedRandomSampler
+from mini_helper_functions import get_mean_std
 
 # Loading config
 def load_config(config_path):
@@ -20,13 +22,29 @@ config = load_config('config.yaml')
 ToTensor: converts image from (height x width x channels) to (C x H x W) and normalizes pixel values to [0, 1]
           converts image to pyTorch tensor"""
 
+generic_transform = transforms.Compose([
+    transforms.Grayscale(num_output_channels=1),
+    transforms.ToTensor(),
+])
+
+generic_dataset = ImageFolder(config['data']['train_dir_izzy'],
+                             transform = generic_transform)
+
+generic_loader = DataLoader(generic_dataset,
+                          batch_size = config["data"]["batch_size"])
+
+mean, std = get_mean_std(generic_loader)
+
 train_transform = transforms.Compose([
-    transforms.Grayscale(num_output_channels=1), # making sure everything is grayscale
-    transforms.ToTensor(), # to tensor must be last
+    transforms.Grayscale(num_output_channels=1),
+    transforms.ToTensor(),
+    v2.Normalize(mean=mean, std=std)
 ])
 
 val_transform = transforms.Compose([
-    transforms.ToTensor(), # to tensor must be last
+    transforms.Grayscale(num_output_channels=1),
+    transforms.ToTensor(),
+    v2.Normalize(mean=mean, std=std)
 ])
 
 # Applying transformations to dataset
@@ -64,7 +82,8 @@ train_loader = DataLoader(dataset_train,
                           shuffle = False) # Shuffle OR sampler, not both
 
 val_loader = DataLoader(dataset_val,
-                          batch_size = config["data"]["batch_size"])
+                        batch_size = config["data"]["batch_size"],
+                        shuffle=False)
 
 
 # Verifying all the data got into the loader

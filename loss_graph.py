@@ -1,5 +1,6 @@
 # source: https://discuss.pytorch.org/t/plotting-loss-curve/42632
 import matplotlib.pyplot as plt
+import torch
 from sklearn.metrics import precision_score, recall_score, f1_score
 
 def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config):
@@ -61,11 +62,12 @@ def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config
 def plot_training_loss(loss_values_train, loss_values_val):
     """Plots training loss over epochs."""
     plt.figure(figsize=(10, 6))
-    plt.plot(range(1, len(loss_values_train) + 1), loss_values_train, marker='o', linestyle='-', linewidth=2)
-    plt.plot(range(1, len(loss_values_train) + 1), loss_values_val, marker='o', linestyle='-', linewidth=2)
+    plt.plot(range(1, len(loss_values_train) + 1), loss_values_train, label = "Validation Loss", marker='o', linestyle='-', linewidth=2)
+    plt.plot(range(1, len(loss_values_train) + 1), loss_values_val, label = "Training Loss", marker='o', linestyle='-', linewidth=2)
+    plt.legend()
     plt.xlabel('Epoch', fontsize=12)
-    plt.ylabel('Training Loss', fontsize=12)
-    plt.title('Training Loss Over Epochs', fontsize=14)
+    plt.ylabel('Loss', fontsize=12)
+    plt.title('Loss Over Epochs', fontsize=14)
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.show()
@@ -147,20 +149,21 @@ def val_one_epoch(model, val_loader, criterion, device):
     all_labels = []
     all_preds = []
 
-    for images, labels in val_loader:
-        images, labels = images.to(device), labels.to(device)
+    with torch.no_grad():
+        for images, labels in val_loader:
+            images, labels = images.to(device), labels.to(device)
 
-        # Forward pass
-        outputs = model(images)
-        loss = criterion(outputs, labels)
+            # Forward pass
+            outputs = model(images)
+            loss = criterion(outputs, labels)
 
-        # Track metrics
-        total_loss += loss.item()
-        _, predicted = outputs.max(1)
-        total += labels.size(0)
-        correct += predicted.eq(labels).sum().item()
-        all_labels.extend(labels.cpu().numpy())
-        all_preds.extend(predicted.cpu().numpy())
+            # Track metrics
+            total_loss += loss.item()
+            _, predicted = outputs.max(1)
+            total += labels.size(0)
+            correct += predicted.eq(labels).sum().item()
+            all_labels.extend(labels.cpu().numpy())
+            all_preds.extend(predicted.cpu().numpy())
 
     avg_loss = total_loss / len(val_loader)
     avg_acc = correct / total

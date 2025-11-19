@@ -18,19 +18,9 @@ training:
   epochs: 15
   learning_rate: 0.001
   optimizer: "Adam" # not connected to code yet
-  weight_decay: 0.0001
-
-# Paths
-paths:
-  checkpoint_dir: "checkpoints"
-  log_dir: "logs"
-  results_dir: "results"
+  weight_decay: .01
 
 # Hardware
 device: "mps"
 seed: 42
 
-# Logging
-logging:
-  log_interval: 10  # Log every 10 batches
-  save_interval: 5  # Save checkpoint every 5 epochs
