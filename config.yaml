@@ -2,7 +2,7 @@
 model:
   name: "CNN"
   num_classes: 7
-  dropout: 0.3
+  dropout: 0.4
 
 # Data Configuration
 data:
@@ -15,10 +15,10 @@ data:
 
 # Training Configuration
 training:
-  epochs: 15
+  epochs: 20
   learning_rate: 0.001
   optimizer: "Adam" # not connected to code yet
-  weight_decay: .01
+  weight_decay: .02
 
 # Hardware
 device: "mps"

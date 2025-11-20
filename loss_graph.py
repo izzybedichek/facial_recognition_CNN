@@ -41,13 +41,13 @@ def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config
         loss_values_train.append(avg_loss)
         loss_values_val.append(avg_loss_val)
 
-        print(f"Loss={avg_loss:.4f}, "
+        print(f"(Training) Loss={avg_loss:.4f}, "
               f"Acc={avg_acc:.4f} ({avg_acc * 100:.2f}%), "
               f"Precision={precision:.4f}, "
               f"Recall={recall:.4f}, "
               f"F1={f1:.4f}")
 
-        print(f"Loss={avg_loss_val:.4f}, "
+        print(f"(Validation) Loss={avg_loss_val:.4f}, "
               f"Acc={avg_acc_val:.4f} ({avg_acc_val * 100:.2f}%), "
               f"Precision={precision_val:.4f}, "
               f"Recall={recall_val:.4f}, "

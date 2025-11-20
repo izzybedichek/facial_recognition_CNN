@@ -37,14 +37,15 @@ mean, std = get_mean_std(generic_loader)
 
 train_transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
+    #transforms.RandomRotation(10),
     transforms.ToTensor(),
-    v2.Normalize(mean=mean, std=std)
+    v2.Normalize(mean=mean, std=std),
 ])
 
 val_transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
     transforms.ToTensor(),
-    v2.Normalize(mean=mean, std=std)
+    v2.Normalize(mean=mean, std=std),
 ])
 
 # Applying transformations to dataset

@@ -21,36 +21,45 @@ class CNN(nn.Module):
         Building blocks of convolutional neural network.
         """
         super(CNN, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels = 32, kernel_size=3, padding=1)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size=3, padding=1)
-        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels = in_channels, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.bn1 = nn.BatchNorm2d(32)
+
+        self.conv2 = nn.Conv2d(in_channels = 32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.bn2 = nn.BatchNorm2d(64)
+
+        self.conv3 = nn.Conv2d(in_channels = 64, out_channels=128, kernel_size=3, stride=1, padding=1)
+        self.bn3 = nn.BatchNorm2d(128)
+
+        self.avgpool = nn.AdaptiveMaxPool2d((6, 6))
+
         self.dropout = nn.Dropout(config["model"]["dropout"])
 
-        # classifier layer
-        self.fc1 = nn.Linear(128 * 6 * 6, num_classes)
+        self.fc1 = nn.Linear(128*6*6, 128)
+        self.fc2 = nn.Linear(128, num_classes)
+
 
     def forward(self, x):
         """
         Define the forward pass of the neural network.
         """
-        x = F.relu(self.conv1(x))
-        x = self.pool(x)
-        x = F.relu(self.conv2(x))
-        x = self.pool(x)
-        x = F.relu(self.conv3(x))
-        x = self.pool(x)
-        x = F.dropout(x)
-        x = x.reshape(x.shape[0], -1)
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
 
-        # classification layer
-        x = self.fc1(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
 
         return x
 
 model = CNN(in_channels= 1, num_classes= config["model"]["num_classes"])
 model = model.to(config['device'])
+
 criterion = nn.CrossEntropyLoss() # look into
+
 optimizer = optim.Adam(model.parameters(),
                        lr = config['training']['learning_rate'],
                        weight_decay= config["training"]["weight_decay"])
