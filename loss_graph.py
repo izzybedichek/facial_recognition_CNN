@@ -29,8 +29,7 @@ def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config
                                                                    train_loader,
                                                                    optimizer,
                                                                    criterion,
-                                                                   config["device"]
-        )
+                                                                   config["device"])
 
         avg_loss_val, avg_acc_val, precision_val, recall_val, f1_val = val_one_epoch(model,
                                                                  val_loader,
