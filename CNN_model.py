@@ -64,13 +64,13 @@ model = model.to(config['device'])
 
 criterion = nn.CrossEntropyLoss() # look into
 
-#optimizer = optim.Adam(model.parameters(),
-#                       lr = config['training']['learning_rate'],
-#                       weight_decay= config["training"]["weight_decay"])
+optimizer = optim.Adam(model.parameters(),
+                       lr = config['training']['learning_rate'],
+                       weight_decay= config["training"]["weight_decay"])
 
-optimizer = Lion(model.parameters(),
-                 config['training']['learning_rate'],
-                 weight_decay=config["training"]["weight_decay"])
+#optimizer = Lion(model.parameters(),
+#                 config['training']['learning_rate'],
+#                 weight_decay=config["training"]["weight_decay"])
 
 loss_values = loss_graph.train_and_plot(model,
                                         dataset_train,

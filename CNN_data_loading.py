@@ -7,6 +7,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.transforms import v2
 from torch.utils.data.sampler import WeightedRandomSampler
+from torchvision.transforms.v2 import ToImage
+
 from mini_helper_functions import get_mean_std
 
 # Loading config
@@ -31,9 +33,10 @@ ToTensor:
 - converts image to pyTorch tensor"""
 
 # calculating ahead for Normalization
-generic_transform = transforms.Compose([
-    transforms.Grayscale(num_output_channels=1),
-    transforms.ToTensor(),
+generic_transform = v2.Compose([
+    v2.Grayscale(num_output_channels=1),
+    v2.ToImage(),
+    v2.ToDtype(torch.float32, scale=True),
 ])
 
 generic_dataset = ImageFolder(config['data']['train_dir_izzy'],
@@ -45,16 +48,18 @@ generic_loader = DataLoader(generic_dataset,
 mean, std = get_mean_std(generic_loader)
 
 # Preprocessing steps
-train_transform = transforms.Compose([
-    transforms.Grayscale(num_output_channels=1),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
+train_transform = v2.Compose([
+    v2.Grayscale(num_output_channels=1),
+    v2.RandomHorizontalFlip(),
+    v2.ToImage(),
+    v2.ToDtype(torch.float32, scale=True),
     v2.Normalize(mean=mean, std=std),
 ])
 
 val_transform = transforms.Compose([
-    transforms.Grayscale(num_output_channels=1),
-    transforms.ToTensor(),
+    v2.Grayscale(num_output_channels=1),
+    v2.ToImage(),
+    v2.ToDtype(torch.float32, scale=True),
     v2.Normalize(mean=mean, std=std),
 ])
 
