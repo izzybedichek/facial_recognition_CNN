@@ -21,6 +21,7 @@ def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config
     loss_values_train = []  # Store loss for each epoch
     loss_values_val = []
 
+    early_stopper = EarlyStopper(patience=3, min_delta=10)
     for epoch in range(config["training"]["epochs"]):
         print(f"\nEpoch {epoch + 1}/{config['training']['epochs']}")
 
@@ -39,6 +40,9 @@ def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config
         # Store the loss for training
         loss_values_train.append(avg_loss)
         loss_values_val.append(avg_loss_val)
+
+        if early_stopper.early_stop(avg_loss_val):
+            break
 
         print(f"(Training) Loss={avg_loss:.4f}, "
               f"Acc={avg_acc:.4f} ({avg_acc * 100:.2f}%), "
@@ -172,3 +176,22 @@ def val_one_epoch(model, val_loader, criterion, device):
     f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0)
 
     return avg_loss, avg_acc, precision, recall, f1
+
+# from https://stackoverflow.com/questions/71998978/early-stopping-in-pytorch
+
+class EarlyStopper:
+    def __init__(self, patience=1, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.min_validation_loss = float('inf')
+
+    def early_stop(self, validation_loss):
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False

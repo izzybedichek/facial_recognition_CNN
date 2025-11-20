@@ -7,7 +7,6 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.transforms import v2
 from torch.utils.data.sampler import WeightedRandomSampler
-from torchvision.transforms.v2 import ToImage
 
 from mini_helper_functions import get_mean_std
 
@@ -49,14 +48,14 @@ mean, std = get_mean_std(generic_loader)
 
 # Preprocessing steps
 train_transform = v2.Compose([
-    v2.Grayscale(num_output_channels=1),
-    v2.RandomHorizontalFlip(),
-    v2.ToImage(),
-    v2.ToDtype(torch.float32, scale=True),
-    v2.Normalize(mean=mean, std=std),
+    v2.Grayscale(num_output_channels=1), # preprocessing
+    v2.RandomHorizontalFlip(), # augmenting
+    v2.ToImage(), # preprocessing
+    v2.ToDtype(torch.float32, scale=True), # preprocessing
+    v2.Normalize(mean=mean, std=std), # preprocessing
 ])
 
-val_transform = transforms.Compose([
+val_transform = transforms.Compose([ # only preprocessing
     v2.Grayscale(num_output_channels=1),
     v2.ToImage(),
     v2.ToDtype(torch.float32, scale=True),

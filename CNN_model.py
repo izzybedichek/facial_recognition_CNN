@@ -3,7 +3,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import CNN_data_loading
-import loss_graph
+import train_and_plot
 import torch.optim as optim
 from lion_pytorch import Lion
 
@@ -72,7 +72,7 @@ optimizer = optim.Adam(model.parameters(),
 #                 config['training']['learning_rate'],
 #                 weight_decay=config["training"]["weight_decay"])
 
-loss_values = loss_graph.train_and_plot(model,
+loss_values = train_and_plot.train_and_plot(model,
                                         dataset_train,
                                         dataset_val,
                                         optimizer,
