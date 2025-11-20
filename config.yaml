@@ -18,7 +18,7 @@ training:
   epochs: 8
   learning_rate: 0.001
   optimizer: "Adam" # not connected to code yet
-  weight_decay: .001
+  weight_decay: .0001
 
 # Hardware
 device: "mps"

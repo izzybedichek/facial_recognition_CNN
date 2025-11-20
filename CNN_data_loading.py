@@ -18,10 +18,15 @@ def load_config(config_path):
 config = load_config('config.yaml')
 
 
-"""Data tranformations:
-ToTensor: converts image from (height x width x channels) to (C x H x W) and normalizes pixel values to [0, 1]
-          converts image to pyTorch tensor"""
+# Data Transformations
+"""
+ToTensor: 
+- converts an image from (height x width x channels) 
+- to (C x H x W) and 
+- normalizes pixel values to [0, 1]
+- converts image to pyTorch tensor"""
 
+# calculating ahead for Normalization
 generic_transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
     transforms.ToTensor(),
@@ -35,9 +40,10 @@ generic_loader = DataLoader(generic_dataset,
 
 mean, std = get_mean_std(generic_loader)
 
+# Preprocessing steps
 train_transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
-    #transforms.RandomRotation(10),
+    transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     v2.Normalize(mean=mean, std=std),
 ])
@@ -48,7 +54,7 @@ val_transform = transforms.Compose([
     v2.Normalize(mean=mean, std=std),
 ])
 
-# Applying transformations to dataset
+# Applying preprocessing to dataset
 dataset_train_val = ImageFolder(config['data']['train_dir_izzy'], transform=train_transform)
 dataset_test  = ImageFolder(config['data']['test_dir_izzy'], transform=val_transform)
 
