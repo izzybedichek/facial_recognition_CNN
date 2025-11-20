@@ -17,6 +17,10 @@ def load_config(config_path):
 
 config = load_config('config.yaml')
 
+if config["device"] == "mps":
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+else:
+    device = torch.device(config["device"])
 
 # Data Transformations
 """

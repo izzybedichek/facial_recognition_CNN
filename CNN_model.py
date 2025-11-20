@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import CNN_data_loading
 import loss_graph
 import torch.optim as optim
+from lion_pytorch import Lion
 
 dataset_train = CNN_data_loading.train_loader
 dataset_val = CNN_data_loading.val_loader
@@ -63,9 +64,13 @@ model = model.to(config['device'])
 
 criterion = nn.CrossEntropyLoss() # look into
 
-optimizer = optim.Adam(model.parameters(),
-                       lr = config['training']['learning_rate'],
-                       weight_decay= config["training"]["weight_decay"])
+#optimizer = optim.Adam(model.parameters(),
+#                       lr = config['training']['learning_rate'],
+#                       weight_decay= config["training"]["weight_decay"])
+
+optimizer = Lion(model.parameters(),
+                 config['training']['learning_rate'],
+                 weight_decay=config["training"]["weight_decay"])
 
 loss_values = loss_graph.train_and_plot(model,
                                         dataset_train,

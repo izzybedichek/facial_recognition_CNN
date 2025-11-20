@@ -22,5 +22,6 @@ training:
 
 # Hardware
 device: "mps"
+fallback_device: "cpu"
 seed: 42
 
