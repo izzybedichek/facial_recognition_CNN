@@ -28,15 +28,30 @@ class CNN(nn.Module):
         self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size=3, stride=1, padding=1)
         self.bn3 = nn.BatchNorm2d(128)
 
+
         # avg pool
         self.avgpool = nn.AdaptiveMaxPool2d((6, 6))
+
+        # convolutional layer block 2
+        self.conv4 = nn.Conv2d(in_channels = 128, out_channels=256, kernel_size=3, stride=1, padding=1)
+        self.bn4 = nn.BatchNorm2d(256)
+
+        # self.conv5 = nn.Conv2d(in_channels = 32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        # self.bn5 = nn.BatchNorm2d(64)
+
+        # self.conv6 = nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size=3, stride=1, padding=1)
+        # self.bn36 = nn.BatchNorm2d(128)
+
+
+        # avg pool
+        self.avgpool2 = nn.AdaptiveMaxPool2d((6, 6))
 
         # dropout
         self.dropout = nn.Dropout(config["model"]["dropout"])
 
         # fully connected/dense layer
-        self.fc1 = nn.Linear(128*6*6, 128)
-        self.fc2 = nn.Linear(128, num_classes)
+        self.fc1 = nn.Linear(256*6*6, 256)
+        self.fc2 = nn.Linear(256, num_classes)
 
 
     def forward(self, x):
@@ -48,6 +63,10 @@ class CNN(nn.Module):
         x = F.leaky_relu(self.bn3(self.conv3(x)))
 
         x = self.avgpool(x)
+
+        x = F.leaky_relu(self.bn4(self.conv4(x)))
+
+        x = self.avgpool2(x)
 
         x = torch.flatten(x, 1)
 
