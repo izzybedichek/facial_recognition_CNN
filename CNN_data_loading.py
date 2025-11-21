@@ -20,6 +20,9 @@ config = load_config('config.yaml')
 
 if config["device"] == "mps":
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+
+elif config['device'] == "cuda":
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 else:
     device = torch.device(config["device"])
 
@@ -38,7 +41,7 @@ generic_transform = v2.Compose([
     v2.ToDtype(torch.float32, scale=True),
 ])
 
-generic_dataset = ImageFolder(config['data']['train_dir_izzy'],
+generic_dataset = ImageFolder(config['data']['train_dir_emily'],
                              transform = generic_transform)
 
 generic_loader = DataLoader(generic_dataset,
@@ -63,8 +66,8 @@ val_transform = transforms.Compose([ # only preprocessing
 ])
 
 # Applying preprocessing to dataset
-dataset_train_val = ImageFolder(config['data']['train_dir_izzy'], transform=train_transform)
-dataset_test  = ImageFolder(config['data']['test_dir_izzy'], transform=val_transform)
+dataset_train_val = ImageFolder("/Users/huang/Documents/NEU_Code/data/train", transform=train_transform)
+dataset_test  = ImageFolder("/Users/huang/Documents/NEU_Code/data/test", transform=val_transform)
 
 dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [.9, .1])
 
