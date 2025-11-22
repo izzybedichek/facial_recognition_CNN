@@ -21,6 +21,8 @@ class CNN(nn.Module):
         super(CNN, self).__init__()
         self.conv1 = nn.Conv2d(in_channels = in_channels, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.bn1 = nn.BatchNorm2d(32)
+        self.conv1b = nn.Conv2d(in_channels = 32, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.bn1b = nn.BatchNorm2d(32)
 
         self.conv2 = nn.Conv2d(in_channels = 32, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.bn2 = nn.BatchNorm2d(64)
@@ -58,7 +60,9 @@ class CNN(nn.Module):
         """
         Define the forward pass of the neural network.
         """
+        
         x = F.leaky_relu(self.bn1(self.conv1(x)))
+        x = F.leaky_relu(self.bn1b(self.conv1b(x)))
         x = F.leaky_relu(self.bn2(self.conv2(x)))
         x = F.leaky_relu(self.bn3(self.conv3(x)))
 
