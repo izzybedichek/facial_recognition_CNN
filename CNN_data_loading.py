@@ -49,12 +49,10 @@ mean, std = get_mean_std(generic_loader)
 # Preprocessing steps
 train_transform = v2.Compose([
     v2.Grayscale(num_output_channels=1), # preprocessing
-    v2.RandomHorizontalFlip(p = 0.5), # augmenting
+   # v2.RandomHorizontalFlip(p = 0.5), # augmenting
     v2.RandomRotation(10), # new
-    v2.RandomAffine(degrees=0, translate=(0.1, 0.1)), # new
     v2.ToImage(), # preprocessing
     v2.ToDtype(torch.float32, scale=True), # preprocessing
-    v2.RandomErasing(p=0.3, scale=(0.02, 0.1)), # new
     v2.Normalize(mean=[mean], std=[std]), # preprocessing
 ])
 

@@ -1,11 +1,17 @@
 # https://www.datacamp.com/tutorial/pytorch-cnn-tutorial
+#import os
+#os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1' # for multi margin loss to work on Izzy's computer
+
 import torch
+#device = torch.device("mps" if torch.backends.mps.is_available() else "cpu") # for multi margin loss to work on Izzy's computer
+
 from torch import nn
 from CNN_data_loading import train_loader, val_loader, config
-import train_and_plot
+from train_and_plot import train_and_plot, EarlyStopper, MulticlassSVMLoss
 import torch.nn.functional as F
 from lion_pytorch import Lion
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts # new
+
 
 # Train for 30-50 epochs
 class CNN(nn.Module):
@@ -29,7 +35,7 @@ class CNN(nn.Module):
         self.bn4 = nn.BatchNorm2d(256)
 
         # avg pool
-        self.maxpool = nn.AdaptiveMaxPool2d((6, 6))
+        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
 
         # dropout
         self.dropout = nn.Dropout(config["model"]["dropout"])
@@ -48,7 +54,7 @@ class CNN(nn.Module):
         x = F.leaky_relu(self.bn3(self.conv3(x)))
         x = F.leaky_relu(self.bn4(self.conv4(x)))
 
-        x = self.maxpool(x)
+        x = self.avgpool(x)
 
         x = torch.flatten(x, 1)
 
@@ -60,23 +66,20 @@ class CNN(nn.Module):
 
         return x
 
-
-
-def create_model(config):
-    return CNN(in_channels=1, num_classes=config["model"]["num_classes"])
-
 model = CNN(in_channels = 1, num_classes = config["model"]["num_classes"])
 model = model.to(config['device'])
 
-criterion = nn.CrossEntropyLoss() # look into
+#criterion = nn.CrossEntropyLoss() # look into
+#criterion = nn.MultiMarginLoss() looks really promising but doesn't run correctly on mac
+criterion = MulticlassSVMLoss()
 
 # optimizer = optim.AdamW(model.parameters(),
 #                        lr = config['training']['learning_rate'],
 #                        weight_decay= config["training"]["weight_decay"])
 
 optimizer = Lion(model.parameters(),
-                config['training']['learning_rate'],
-                weight_decay=config["training"]["weight_decay"])
+                 config['training']['learning_rate'],
+                 weight_decay=config["training"]["weight_decay"])
 
 scheduler = CosineAnnealingWarmRestarts( # new
     optimizer,
@@ -84,13 +87,13 @@ scheduler = CosineAnnealingWarmRestarts( # new
     T_mult=2
 )
 
-loss_values = train_and_plot.train_and_plot(model,
-                                        train_loader,
-                                        val_loader,
-                                        optimizer,
-                                        criterion,
-                                        config,
-                                        scheduler=scheduler)
+loss_values = train_and_plot(model,
+                             train_loader,
+                             val_loader,
+                             optimizer,
+                             criterion,
+                             config,
+                             scheduler=scheduler)
 
 
 

@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 import torch
 from sklearn.metrics import precision_score, recall_score, f1_score
+from torch import nn
 
 def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config, scheduler=None):
     """
@@ -211,3 +212,28 @@ class EarlyStopper:
             if self.counter >= self.patience:
                 return True
         return False
+
+
+class MulticlassSVMLoss(nn.Module):
+    def __init__(self, margin=1.0):
+        super().__init__()
+        self.margin = margin
+
+    def forward(self, outputs, labels):
+        batch_size = outputs.size(0) # gets samples per batch for later calculation
+
+        # extracts the score of the correct class for each sample and reshapes into a column vector for calculating the margin
+        correct_scores = outputs[torch.arange(batch_size), labels].unsqueeze(1)
+
+        # calculates the margin violations: margin - (correct_score - wrong_scores)
+        margins = self.margin - correct_scores + outputs
+
+        # zeroes out loss at the position of the correct class so that correct guesses
+        # aren't compared against themselves
+        margins[torch.arange(batch_size), labels] = 0
+
+        # clamps all elements in input into the range [ min, max ] (applying hinge max on: margin - (correct_score - wrong_scores))
+        loss = torch.clamp(margins, min=0)
+
+        # average
+        return loss.sum() / batch_size
