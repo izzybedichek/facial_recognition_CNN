@@ -19,7 +19,6 @@ training:
   learning_rate: 0.00016
   optimizer: "Adam" # not connected to code yet
   weight_decay: .0001
-  el2n_fraction: 0.5
 
 # Hardware
 device: "mps"
