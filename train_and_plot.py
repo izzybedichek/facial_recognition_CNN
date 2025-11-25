@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import torch
 from sklearn.metrics import precision_score, recall_score, f1_score
 
-def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config):
+def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config, scheduler=None):
     """
     Trains the model for multiple epochs and plots the training loss.
 
@@ -41,7 +41,13 @@ def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config
         loss_values_train.append(avg_loss)
         loss_values_val.append(avg_loss_val)
 
+        # Print current learning rate
+        if scheduler is not None:
+            current_lr = optimizer.param_groups[0]['lr']
+            print(f"Learning Rate: {current_lr:.6f}")
+
         if early_stopper.early_stop(avg_loss_val):
+            print(f"Early stopping triggered at epoch {epoch + 1}")
             break
 
         print(f"(Training) Loss={avg_loss:.4f}, "
@@ -65,8 +71,8 @@ def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config
 def plot_training_loss(loss_values_train, loss_values_val):
     """Plots training loss over epochs."""
     plt.figure(figsize=(10, 6))
-    plt.plot(range(1, len(loss_values_train) + 1), loss_values_train, label = "Validation Loss", marker='o', linestyle='-', linewidth=2)
-    plt.plot(range(1, len(loss_values_train) + 1), loss_values_val, label = "Training Loss", marker='o', linestyle='-', linewidth=2)
+    plt.plot(range(1, len(loss_values_train) + 1), loss_values_train, label = "Training Loss", marker='o', linestyle='-', linewidth=2)
+    plt.plot(range(1, len(loss_values_val) + 1), loss_values_val, label = "Validation Loss", marker='o', linestyle='-', linewidth=2)
     plt.legend()
     plt.xlabel('Epoch', fontsize=12)
     plt.ylabel('Loss', fontsize=12)
@@ -76,7 +82,7 @@ def plot_training_loss(loss_values_train, loss_values_val):
     plt.show()
 
 
-def train_one_epoch(model, train_loader, optimizer, criterion, device):
+def train_one_epoch(model, train_loader, optimizer, criterion, device, scheduler=None, epoch):
     """
     Train the model for one epoch.
 
@@ -107,6 +113,10 @@ def train_one_epoch(model, train_loader, optimizer, criterion, device):
         # Forward pass
         outputs = model(images)
         loss = criterion(outputs, labels)
+
+        # Step scheduler if it's CosineAnnealingWarmRestarts (steps per batch)
+        if scheduler is not None and isinstance(scheduler, torch.optim.lr_scheduler.CosineAnnealingWarmRestarts):
+            scheduler.step(epoch + batch_idx / len(train_loader))
 
         # Backward pass and optimization
         loss.backward()
