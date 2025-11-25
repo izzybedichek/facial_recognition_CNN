@@ -43,6 +43,7 @@ def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config
 
         # Print current learning rate
         if scheduler is not None:
+            scheduler.step(avg_loss_val)
             current_lr = optimizer.param_groups[0]['lr']
             print(f"Learning Rate: {current_lr:.6f}")
 
@@ -82,7 +83,7 @@ def plot_training_loss(loss_values_train, loss_values_val):
     plt.show()
 
 
-def train_one_epoch(model, train_loader, optimizer, criterion, device, scheduler=None, epoch):
+def train_one_epoch(model, train_loader, optimizer, criterion, device):
     """
     Train the model for one epoch.
 
@@ -107,28 +108,30 @@ def train_one_epoch(model, train_loader, optimizer, criterion, device, scheduler
     for images, labels in train_loader:
         images, labels = images.to(device), labels.to(device)
 
-        # Zero the gradients
+        # Reset
         optimizer.zero_grad()
 
-        # Forward pass
+        # Forwards
         outputs = model(images)
         loss = criterion(outputs, labels)
 
-        # Step scheduler if it's CosineAnnealingWarmRestarts (steps per batch)
-        if scheduler is not None and isinstance(scheduler, torch.optim.lr_scheduler.CosineAnnealingWarmRestarts):
-            scheduler.step(epoch + batch_idx / len(train_loader))
-
-        # Backward pass and optimization
+        # Backwards
         loss.backward()
         optimizer.step()
 
-        # Track metrics
+        # Metrics
         total_loss += loss.item()
         _, predicted = outputs.max(1)
         total += labels.size(0)
         correct += predicted.eq(labels).sum().item()
-        all_labels.extend(labels.cpu().numpy())
-        all_preds.extend(predicted.cpu().numpy())
+
+        # Setting uo
+        all_labels.append(labels.cpu())
+        all_preds.append(predicted.cpu())
+
+     # Metrics
+    all_labels = torch.cat(all_labels).numpy()
+    all_preds = torch.cat(all_preds).numpy()
 
     avg_loss = total_loss / len(train_loader)
     avg_acc = correct / total
@@ -195,11 +198,14 @@ class EarlyStopper:
         self.min_delta = min_delta
         self.counter = 0
         self.min_validation_loss = float('inf')
+        self.best_model = None
 
-    def early_stop(self, validation_loss):
+    def early_stop(self, validation_loss, model=None):
         if validation_loss < self.min_validation_loss:
             self.min_validation_loss = validation_loss
             self.counter = 0
+            if model is not None:
+                self.best_model = model.state_dict().copy()  # Save best weights
         elif validation_loss > (self.min_validation_loss + self.min_delta):
             self.counter += 1
             if self.counter >= self.patience:

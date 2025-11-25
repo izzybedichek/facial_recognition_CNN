@@ -1,10 +1,9 @@
 # https://www.datacamp.com/tutorial/pytorch-cnn-tutorial
 import torch
 from torch import nn
-import torch.nn.functional as F
 from CNN_data_loading import train_loader, val_loader, config
 import train_and_plot
-import torch.optim as optim
+import torch.nn.functional as F
 from lion_pytorch import Lion
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts # new
 
