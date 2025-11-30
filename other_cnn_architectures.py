@@ -1,6 +1,10 @@
 import torch
 from torch import nn
+from CNN_data_loading import train_loader, val_loader, config
+from train_and_plot import train_and_plot, MulticlassSVMLoss
 import torch.nn.functional as F
+from lion_pytorch import Lion
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts # new
 
 class OtherCNN(nn.Module):
     def __init__(self, in_channels, num_classes):
@@ -26,7 +30,7 @@ class OtherCNN(nn.Module):
         self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
 
         self.fc1 = nn.Linear(512, 256)
-        self.dropout1 = nn.Dropout(0.5)
+        self.dropout1 = nn.Dropout(config["dropout"])
         self.fc2 = nn.Linear(256, num_classes)
 
     def forward(self, x):
@@ -154,3 +158,33 @@ class DenseCNN(nn.Module):
         x = self.fc(x)
 
         return x
+
+
+#model = DenseCNN(in_channels = 1, num_classes = config["model"]["num_classes"])
+model = OtherCNN(in_channels = 1, num_classes = config["model"]["num_classes"])
+model = model.to(config['device'])
+
+#criterion = nn.CrossEntropyLoss()
+criterion = MulticlassSVMLoss()
+
+# optimizer = optim.AdamW(model.parameters(),
+#                        lr = config['training']['learning_rate'],
+#                        weight_decay= config["training"]["weight_decay"])
+
+optimizer = Lion(model.parameters(),
+                 config['training']['learning_rate'],
+                 weight_decay=config["training"]["weight_decay"])
+
+scheduler = CosineAnnealingWarmRestarts( # new
+    optimizer,
+    T_0=10,  # restart every 10 epochs
+    T_mult=2
+)
+
+loss_values = train_and_plot(model,
+                             train_loader,
+                             val_loader,
+                             optimizer,
+                             criterion,
+                             config,
+                             scheduler=scheduler)

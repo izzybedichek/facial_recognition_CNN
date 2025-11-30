@@ -1,16 +1,14 @@
 # https://www.datacamp.com/tutorial/pytorch-cnn-tutorial
-#import os
-#os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1' # for multi margin loss to work on Izzy's computer
 
 import torch
-#device = torch.device("mps" if torch.backends.mps.is_available() else "cpu") # for multi margin loss to work on Izzy's computer
-
 from torch import nn
+from torch.nn.functional import sigmoid
+import torch.optim as optim
 from CNN_data_loading import train_loader, val_loader, config
-from train_and_plot import train_and_plot, EarlyStopper, MulticlassSVMLoss
+from train_and_plot import train_and_plot, MulticlassSVMLoss
 import torch.nn.functional as F
 from lion_pytorch import Lion
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts # new
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau  # new
 
 
 # Train for 30-50 epochs
@@ -25,14 +23,20 @@ class CNN(nn.Module):
         self.conv1 = nn.Conv2d(in_channels = in_channels, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.bn1 = nn.BatchNorm2d(32)
 
+        self.conv1b = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.bn1b = nn.BatchNorm2d(32)
+
         self.conv2 = nn.Conv2d(in_channels = 32, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.bn2 = nn.BatchNorm2d(64)
 
         self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size=3, stride=1, padding=1)
         self.bn3 = nn.BatchNorm2d(128)
 
-        self.conv4 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
-        self.bn4 = nn.BatchNorm2d(256)
+        #self.conv4 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
+       # self.bn4 = nn.BatchNorm2d(256)
+
+        # max pool
+        self.pool = nn.MaxPool2d(2, 2)
 
         # avg pool
         self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
@@ -41,26 +45,32 @@ class CNN(nn.Module):
         self.dropout = nn.Dropout(config["model"]["dropout"])
 
         # fully connected/dense layer
-        self.fc1 = nn.Linear(256*6*6, 256)
-        self.fc2 = nn.Linear(256, num_classes)
+        self.fc1 = nn.Linear(128*6*6,  128)
+        self.fc2 = nn.Linear(128, num_classes)
 
 
     def forward(self, x):
         """
         Define the forward pass of the neural network.
         """
-        x = F.leaky_relu(self.bn1(self.conv1(x)))
-        x = F.leaky_relu(self.bn2(self.conv2(x)))
-        x = F.leaky_relu(self.bn3(self.conv3(x)))
-        x = F.leaky_relu(self.bn4(self.conv4(x)))
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = self.pool(x)
+
+        x = F.relu(self.bn1b(self.conv1b(x)))
+
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = self.pool(x)
+
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = self.pool(x)
 
         x = self.avgpool(x)
 
         x = torch.flatten(x, 1)
 
-        x = F.leaky_relu(self.fc1(x))
-
         x = self.dropout(x)
+
+        x = F.relu(self.fc1(x))
 
         x = self.fc2(x)
 
@@ -73,19 +83,27 @@ model = model.to(config['device'])
 #criterion = nn.MultiMarginLoss() looks really promising but doesn't run correctly on mac
 criterion = MulticlassSVMLoss()
 
-# optimizer = optim.AdamW(model.parameters(),
-#                        lr = config['training']['learning_rate'],
-#                        weight_decay= config["training"]["weight_decay"])
+optimizer = optim.AdamW(model.parameters(),
+                       lr = config['training']['learning_rate'],
+                       weight_decay= config["training"]["weight_decay"])
 
-optimizer = Lion(model.parameters(),
-                 config['training']['learning_rate'],
-                 weight_decay=config["training"]["weight_decay"])
+# optimizer = Lion(model.parameters(),
+#                  config['training']['learning_rate'],
+#                  weight_decay=config["training"]["weight_decay"])
 
 scheduler = CosineAnnealingWarmRestarts( # new
     optimizer,
     T_0=10,  # restart every 10 epochs
     T_mult=2
 )
+
+# scheduler = ReduceLROnPlateau(
+#     optimizer,
+#     mode='min',
+#     factor = 0.5,
+#     patience = 3,
+#     min_lr=.0000001
+# )
 
 loss_values = train_and_plot(model,
                              train_loader,

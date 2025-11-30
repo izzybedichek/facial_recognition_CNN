@@ -14,7 +14,7 @@ for root, folder, files in os.walk(config["data"]["train_dir_izzy"]):
                 count += 1
         train_dict[f] = count
 
-#print(train_dict)
+print(train_dict)
 
 #print("Sum of training files using sum of folders: " + str(sum(train_dict.values())) + "\n" + "Total files sanity check: " + str(len(dataset_train)))
 
