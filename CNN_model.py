@@ -32,9 +32,6 @@ class CNN(nn.Module):
         self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size=3, stride=1, padding=1)
         self.bn3 = nn.BatchNorm2d(128)
 
-        #self.conv4 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
-       # self.bn4 = nn.BatchNorm2d(256)
-
         # max pool
         self.pool = nn.MaxPool2d(2, 2)
 
@@ -44,8 +41,9 @@ class CNN(nn.Module):
         # dropout
         self.dropout = nn.Dropout(config["model"]["dropout"])
 
+
         # fully connected/dense layer
-        self.fc1 = nn.Linear(128*6*6,  128)
+        self.fc1 = nn.Linear(128*6*6, 128)
         self.fc2 = nn.Linear(128, num_classes)
 
 
@@ -53,6 +51,7 @@ class CNN(nn.Module):
         """
         Define the forward pass of the neural network.
         """
+        # convolutional
         x = F.relu(self.bn1(self.conv1(x)))
         x = self.pool(x)
 
@@ -66,6 +65,7 @@ class CNN(nn.Module):
 
         x = self.avgpool(x)
 
+        # dense/connected
         x = torch.flatten(x, 1)
 
         x = self.dropout(x)
