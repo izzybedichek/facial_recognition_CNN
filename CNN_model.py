@@ -36,9 +36,9 @@ class CNN(nn.Module):
         self.bn3 = nn.BatchNorm2d(128)
 
 
-        # avg pool
-        self.maxpool = nn.AdaptiveMaxPool2d((6, 6))
-
+        # max pool
+        self.maxpool = nn.AdaptiveMaxPool2d((12, 12))
+ 
         # convolutional layer block 2
         self.conv4 = nn.Conv2d(in_channels = 128, out_channels=256, kernel_size=3, stride=1, padding=1)
         self.bn4 = nn.BatchNorm2d(256)
@@ -52,7 +52,7 @@ class CNN(nn.Module):
         # self.bn36 = nn.BatchNorm2d(128)
 
 
-        # avg pool
+        # max pool
         self.maxpool2 = nn.AdaptiveAvgPool2d((6, 6))
 
         # dropout
