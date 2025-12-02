@@ -10,6 +10,8 @@ from torch.utils.data.sampler import WeightedRandomSampler
 
 from mini_helper_functions import get_mean_std
 
+print("Starting CNN_data_loading.py")
+
 # Loading config
 def load_config(config_path):
     with open(config_path, 'r') as f:
@@ -52,7 +54,8 @@ mean, std = get_mean_std(generic_loader)
 # Preprocessing steps
 train_transform = v2.Compose([
     v2.Grayscale(num_output_channels=1), # preprocessing
-    # v2.RandomHorizontalFlip(), # augmenting
+    v2.RandomHorizontalFlip(), # augmenting
+    v2.ColorJitter(brightness=(0.5, 1.5), contrast=(0.8, 1.2)), # brightness and contrast augmentation
     v2.ToImage(), # preprocessing
     v2.ToDtype(torch.float32, scale=True), # preprocessing
     v2.Normalize(mean=mean, std=std), # preprocessing
@@ -72,8 +75,8 @@ dataset_test  = ImageFolder("/Users/huang/Documents/NEU_Code/data/test", transfo
 dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [.9, .1])
 
 # Verifying we have the whole dataset
-#print(f"Train dataset size: {len(dataset_train)}")
-#print(f"Test dataset size: {len(dataset_test)}")
+print(f"Train dataset size: {len(dataset_train)}")
+print(f"Test dataset size: {len(dataset_test)}")
 
 # Weighted random sampling for testing data
 train_indices = dataset_train.indices
