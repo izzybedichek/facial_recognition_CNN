@@ -1,7 +1,11 @@
 # source: https://discuss.pytorch.org/t/plotting-loss-curve/42632
 import matplotlib.pyplot as plt
 import torch
+import seaborn as sns
 from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import confusion_matrix, classification_report
+
+EMOTIONS = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
 
 def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config):
     """
@@ -65,8 +69,8 @@ def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config
 def plot_training_loss(loss_values_train, loss_values_val):
     """Plots training loss over epochs."""
     plt.figure(figsize=(10, 6))
-    plt.plot(range(1, len(loss_values_train) + 1), loss_values_train, label = "Validation Loss", marker='o', linestyle='-', linewidth=2)
-    plt.plot(range(1, len(loss_values_train) + 1), loss_values_val, label = "Training Loss", marker='o', linestyle='-', linewidth=2)
+    plt.plot(range(1, len(loss_values_train) + 1), loss_values_val, label = "Validation Loss", marker='o', linestyle='-', linewidth=2)
+    plt.plot(range(1, len(loss_values_train) + 1), loss_values_train, label = "Training Loss", marker='o', linestyle='-', linewidth=2)
     plt.legend()
     plt.xlabel('Epoch', fontsize=12)
     plt.ylabel('Loss', fontsize=12)
@@ -195,3 +199,17 @@ class EarlyStopper:
             if self.counter >= self.patience:
                 return True
         return False
+
+
+#plot confusion matrix
+def plot_confusion_matrix(y_true, y_pred, emotions=EMOTIONS):
+    cm = confusion_matrix(y_true, y_pred)
+    
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                xticklabels=emotions, yticklabels=emotions)
+    plt.title('Confusion Matrix')
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.tight_layout()
+    plt.show()
