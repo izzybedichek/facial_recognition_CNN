@@ -78,29 +78,36 @@ dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [.
 print(f"Train dataset size: {len(dataset_train)}")
 print(f"Test dataset size: {len(dataset_test)}")
 
-# Weighted random sampling for testing data
-train_indices = dataset_train.indices
-train_targets = [dataset_train_val.targets[i] for i in train_indices]
+# If weighted sampling is true in config > load training data with weighted sampling
+if config.get("weighted_sampling", False):
+    # Weighted random sampling for testing data
+    train_indices = dataset_train.indices
+    train_targets = [dataset_train_val.targets[i] for i in train_indices]
 
-class_counts = np.bincount(train_targets)
+    class_counts = np.bincount(train_targets)
 
-#print(class_counts)
+    #print(class_counts)
 
-class_weights = 1.0 / class_counts
+    class_weights = 1.0 / class_counts
 
-#print(class_weights)
+    #print(class_weights)
 
-sample_weights = [class_weights[t] for t in train_targets]
+    sample_weights = [class_weights[t] for t in train_targets]
 
-sampler = WeightedRandomSampler(weights = sample_weights,
-                                num_samples = len(sample_weights),
-                                replacement=True)
+    sampler = WeightedRandomSampler(weights = sample_weights,
+                                    num_samples = len(sample_weights),
+                                    replacement=True)
 
-# Loading the dataset using PyTorch
-train_loader = DataLoader(dataset_train,
-                          sampler = sampler,
-                          batch_size = config["data"]["batch_size"],
-                          shuffle = False) # Shuffle OR sampler, not both
+    # Loading the dataset using PyTorch
+    train_loader = DataLoader(dataset_train,
+                            sampler = sampler,
+                            batch_size = config["data"]["batch_size"],
+                            shuffle = False) # Shuffle OR sampler, not both
+else:
+     # Loading the dataset with regular random sampling with Shuffle
+     train_loader = DataLoader(dataset_train,
+                              batch_size = config["data"]["batch_size"],
+                              shuffle = True)
 
 val_loader = DataLoader(dataset_val,
                         batch_size = config["data"]["batch_size"],

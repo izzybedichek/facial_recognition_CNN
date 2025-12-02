@@ -14,6 +14,7 @@ data:
   test_dir_emily: "/Users/huang/Documents/NEU_Code/data/test"
   batch_size: 64
   image_size: [48, 48]
+  weighted_sampling: false
 
 # Training Configuration
 training:
