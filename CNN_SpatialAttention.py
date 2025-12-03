@@ -7,48 +7,6 @@ import torch.nn.functional as F
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
 
-class SelfAttention(nn.Module):
-    """
-    Self-attention mechanism for capturing feature relationships.
-    Works on flattened spatial features.
-    """
-
-    def __init__(self, in_dim):
-        super(SelfAttention, self).__init__()
-        # Reduce dimensionality for efficiency
-        self.query = nn.Linear(in_dim, in_dim // 8)
-        self.key = nn.Linear(in_dim, in_dim // 8)
-        self.value = nn.Linear(in_dim, in_dim)
-        self.gamma = nn.Parameter(torch.zeros(1))  # Learnable weight
-
-    def forward(self, x):
-        """
-        Args:
-            x: [batch_size, in_dim] flattened features
-        Returns:
-            attention-weighted features [batch_size, in_dim]
-        """
-        batch_size = x.size(0)
-
-        # Generate Q, K, V
-        Q = self.query(x)  # [batch, in_dim//8]
-        K = self.key(x)  # [batch, in_dim//8]
-        V = self.value(x)  # [batch, in_dim]
-
-        # Attention scores
-        attention = torch.matmul(Q, K.transpose(-2, -1))  # [batch, batch]
-        attention = attention / (K.size(-1) ** 0.5)  # Scale
-        attention = F.softmax(attention, dim=-1)
-
-        # Apply attention to values
-        out = torch.matmul(attention, V)  # [batch, in_dim]
-
-        # Residual connection with learnable weight
-        out = self.gamma * out + x
-
-        return out
-
-
 class SpatialAttention(nn.Module):
     """
     Spatial attention for 2D feature maps.
@@ -93,74 +51,6 @@ class SpatialAttention(nn.Module):
         return x
 
 
-class CNN_SelfAttention(nn.Module):
-    """
-    CNN with self-attention on flattened features.
-    Best for: capturing global relationships between features.
-    """
-
-    def __init__(self, in_channels, num_classes):
-        super(CNN_SelfAttention, self).__init__()
-
-        # ========== CNN Backbone ==========
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=32,
-                               kernel_size=3, stride=1, padding=1)
-        self.bn1 = nn.BatchNorm2d(32)
-
-        self.conv1b = nn.Conv2d(in_channels=32, out_channels=32,
-                                kernel_size=3, stride=1, padding=1)
-        self.bn1b = nn.BatchNorm2d(32)
-
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64,
-                               kernel_size=3, stride=1, padding=1)
-        self.bn2 = nn.BatchNorm2d(64)
-
-        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128,
-                               kernel_size=3, stride=1, padding=1)
-        self.bn3 = nn.BatchNorm2d(128)
-
-        self.pool = nn.MaxPool2d(2, 2)
-        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
-        self.dropout = nn.Dropout(config["model"]["dropout"])
-
-        # ========== Self-Attention Layer ==========
-        feature_dim = 128 * 6 * 6  # Flattened feature dimension
-        self.self_attention = SelfAttention(feature_dim)
-
-        # ========== Classifier ==========
-        self.fc1 = nn.Linear(feature_dim, 128)
-        self.fc2 = nn.Linear(128, num_classes)
-
-    def forward(self, x):
-        # CNN feature extraction
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = self.pool(x)
-
-        x = F.relu(self.bn1b(self.conv1b(x)))
-
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = self.pool(x)
-
-        x = F.relu(self.bn3(self.conv3(x)))
-        x = self.pool(x)
-
-        x = self.avgpool(x)
-
-        # Flatten
-        x = torch.flatten(x, 1)
-
-        x = self.dropout(x)
-
-        # Apply self-attention
-        x = self.self_attention(x)
-
-        # Classification
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-
-        return x
-
-
 class CNN_SpatialAttention(nn.Module):
     """
     CNN with spatial attention on feature maps.
@@ -170,7 +60,7 @@ class CNN_SpatialAttention(nn.Module):
     def __init__(self, in_channels, num_classes):
         super(CNN_SpatialAttention, self).__init__()
 
-        # ========== CNN Backbone ==========
+
         self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=32,
                                kernel_size=3, stride=1, padding=1)
         self.bn1 = nn.BatchNorm2d(32)
@@ -189,8 +79,8 @@ class CNN_SpatialAttention(nn.Module):
 
         self.pool = nn.MaxPool2d(2, 2)
 
-        # ========== Spatial Attention ==========
-        # Apply after conv3 (before final pooling)
+        # Spatial Attention
+        # Apply before final pooling
         self.spatial_attention = SpatialAttention(128)
 
         self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
@@ -203,15 +93,15 @@ class CNN_SpatialAttention(nn.Module):
     def forward(self, x):
         # CNN feature extraction
         x = F.relu(self.bn1(self.conv1(x)))
-        x = self.pool(x)
+        #x = self.pool(x)
 
         x = F.relu(self.bn1b(self.conv1b(x)))
 
         x = F.relu(self.bn2(self.conv2(x)))
-        x = self.pool(x)
+        #x = self.pool(x)
 
         x = F.relu(self.bn3(self.conv3(x)))
-        x = self.pool(x)
+        #x = self.pool(x)
 
         # Apply spatial attention to feature maps
         x = self.spatial_attention(x)
@@ -226,14 +116,6 @@ class CNN_SpatialAttention(nn.Module):
 
         return x
 
-
-# ========== Choose Your Model ==========
-
-# # Option 1: Self-attention on flattened features (lighter, faster)
-# model = CNN_SelfAttention(
-#     in_channels=1,
-#     num_classes=config["model"]["num_classes"]
-# )
 
 # Option 2: Spatial attention on feature maps (more interpretable)
 model = CNN_SpatialAttention(

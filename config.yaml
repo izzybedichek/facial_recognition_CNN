@@ -11,15 +11,15 @@ data:
   test_dir_izzy: "/Users/izzybedichek/Desktop/imp/grad_school/machine_learning/facial_recognition_CNN/data/test"
   train_dir_emily: "/Users/shuang/Desktop/0_Emily/3_Fall25/ML/Project 2/data/train"
   test_dir_emily: "/Users/shuang/Desktop/0_Emily/3_Fall25/ML/Project 2/data/test"
-  batch_size: 90
+  batch_size: 100
   image_size: [48, 48]
 
 # Training Configuration
 training:
-  epochs: 20
+  epochs: 30
   learning_rate: 0.001
   optimizer: "AdamW" # not connected to code, purely descriptive
-  weight_decay: .02
+  weight_decay: .03
 
 # Hardware
 device: "mps"

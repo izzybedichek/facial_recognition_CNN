@@ -4,14 +4,13 @@ import torch
 from torch import nn
 from torch.nn.functional import sigmoid
 import torch.optim as optim
-from CNN_data_loading import train_loader, val_loader, config
+from CNN_data_loading import train_loader, val_loader, config, class_weights_tensor
 from train_and_plot import train_and_plot, MulticlassSVMLoss
 import torch.nn.functional as F
 from lion_pytorch import Lion
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau  # new
 
 
-# Train for 30-50 epochs
 class CNN(nn.Module):
     def __init__(self, in_channels, num_classes):
 
@@ -20,16 +19,28 @@ class CNN(nn.Module):
         """
         # convolutional layer
         super(CNN, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels = in_channels, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(in_channels = in_channels, out_channels=32,
+                               kernel_size=3,
+                               stride=1,
+                               padding=1)
         self.bn1 = nn.BatchNorm2d(32)
 
-        self.conv1b = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv1b = nn.Conv2d(in_channels=32, out_channels=32,
+                                kernel_size=3,
+                                stride=1,
+                                padding=1)
         self.bn1b = nn.BatchNorm2d(32)
 
-        self.conv2 = nn.Conv2d(in_channels = 32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels = 32, out_channels=64,
+                               kernel_size=3,
+                               stride=1,
+                               padding=1)
         self.bn2 = nn.BatchNorm2d(64)
 
-        self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 128,
+                               kernel_size=3,
+                               stride=1,
+                               padding=1)
         self.bn3 = nn.BatchNorm2d(128)
 
         # max pool
@@ -53,15 +64,15 @@ class CNN(nn.Module):
         """
         # convolutional
         x = F.relu(self.bn1(self.conv1(x)))
-        x = self.pool(x)
+        #x = self.pool(x)
 
         x = F.relu(self.bn1b(self.conv1b(x)))
 
         x = F.relu(self.bn2(self.conv2(x)))
-        x = self.pool(x)
+        #x = self.pool(x)
 
         x = F.relu(self.bn3(self.conv3(x)))
-        x = self.pool(x)
+        #x = self.pool(x)
 
         x = self.avgpool(x)
 
@@ -79,16 +90,16 @@ class CNN(nn.Module):
 model = CNN(in_channels = 1, num_classes = config["model"]["num_classes"])
 model = model.to(config['device'])
 
-#criterion = nn.CrossEntropyLoss() # look into
+criterion = nn.CrossEntropyLoss(label_smoothing=0.5) # look into
 #criterion = nn.MultiMarginLoss() looks really promising but doesn't run correctly on mac
-criterion = MulticlassSVMLoss()
+#criterion = MulticlassSVMLoss()
 
 optimizer = optim.AdamW(model.parameters(),
                        lr = config['training']['learning_rate'],
                        weight_decay= config["training"]["weight_decay"])
 
 # optimizer = Lion(model.parameters(),
-#                  config['training']['learning_rate'],
+#                  config['training']['learning_rate']/3,
 #                  weight_decay=config["training"]["weight_decay"])
 
 scheduler = CosineAnnealingWarmRestarts( # new

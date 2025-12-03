@@ -3,12 +3,13 @@ import torch
 import numpy as np
 
 from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 from torchvision import transforms
 from torchvision.transforms import v2
 from torch.utils.data.sampler import WeightedRandomSampler
+import copy
 
-from mini_helper_functions import get_mean_std
+from mini_helper_functions import get_mean_std, AugmentedMinorityDataset
 
 # Loading config
 def load_config(config_path):
@@ -46,14 +47,15 @@ generic_loader = DataLoader(generic_dataset,
 
 mean, std = get_mean_std(generic_loader)
 
-# Preprocessing steps
+#-------Preprocessing--------
 train_transform = v2.Compose([
-    v2.Grayscale(num_output_channels=1), # preprocessing
-   # v2.RandomHorizontalFlip(p = 0.5), # augmenting
-   # v2.RandomRotation(10), # new
-    v2.ToImage(), # preprocessing
-    v2.ToDtype(torch.float32, scale=True), # preprocessing
-    v2.Normalize(mean=[mean], std=[std]), # preprocessing
+    v2.Grayscale(num_output_channels=1),
+    #v2.RandomHorizontalFlip(p=0.5),
+    #v2.RandomRotation(20),
+    v2.ToImage(),
+    v2.ToDtype(torch.float32, scale=True),
+    v2.Normalize(mean=[mean], std=[std]),
+    #v2.RandomErasing(p=0.2),
 ])
 
 val_transform = transforms.Compose([ # only preprocessing
@@ -63,11 +65,14 @@ val_transform = transforms.Compose([ # only preprocessing
     v2.Normalize(mean=mean, std=std),
 ])
 
+
+# -----more preprocessing-----
 # Applying preprocessing to dataset
 dataset_train_val = ImageFolder(config['data']['train_dir_izzy'], transform=train_transform)
 dataset_test  = ImageFolder(config['data']['test_dir_izzy'], transform=val_transform)
 
-dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [.9, .1])
+dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [.8, .2])
+
 
 # Verifying we have the whole dataset
 #print(f"Train dataset size: {len(dataset_train)}")
@@ -83,15 +88,24 @@ class_counts = np.bincount(train_targets)
 
 class_weights = 1.0 / class_counts
 
+class_weights_tensor = torch.tensor(
+    class_weights,
+    dtype=torch.float32,
+    device=device
+)
+
 #print(class_weights)
+
+#---------class weighting-------
 
 sample_weights = [class_weights[t] for t in train_targets]
 
 sampler = WeightedRandomSampler(weights = sample_weights,
-                                num_samples = len(sample_weights),
+                                num_samples = len(sample_weights)*3,
                                 replacement=True)
 
-# Loading the dataset using PyTorch
+
+# train loader with weighted random sampling
 train_loader = DataLoader(dataset_train,
                           sampler = sampler,
                           batch_size = config["data"]["batch_size"],

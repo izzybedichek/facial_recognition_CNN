@@ -1,7 +1,7 @@
 # source: https://discuss.pytorch.org/t/plotting-loss-curve/42632
 import matplotlib.pyplot as plt
 import torch
-from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import precision_score, recall_score, f1_score, classification_report
 from torch import nn
 
 def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config, scheduler=None):
@@ -63,6 +63,7 @@ def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config
               f"Precision={precision_val:.4f}, "
               f"Recall={recall_val:.4f}, "
               f"F1={f1_val:.4f}")
+
 
     # Plot the training loss
     plot_training_loss(loss_values_train, loss_values_val)
@@ -188,6 +189,13 @@ def val_one_epoch(model, val_loader, criterion, device):
     precision = precision_score(all_labels, all_preds, average='weighted', zero_division=0)
     recall = recall_score(all_labels, all_preds, average='weighted', zero_division=0)
     f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0)
+
+    unique_classes = sorted(set(all_labels))
+
+    print(classification_report(all_labels, all_preds,
+                                labels=unique_classes,
+                                target_names=[f"Class_{i}" for i in unique_classes],
+                                zero_division=0))
 
     return avg_loss, avg_acc, precision, recall, f1
 

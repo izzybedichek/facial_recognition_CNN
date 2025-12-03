@@ -122,13 +122,19 @@ class CNN_LSTM_Fast(nn.Module):
         super(CNN_LSTM_Fast, self).__init__()
 
         # Reuse your CNN backbone
-        self.conv1 = nn.Conv2d(in_channels, 32, 3, 1, 1)
+        self.conv1 = nn.Conv2d(in_channels, 32,
+                               3, 1, 1)
         self.bn1 = nn.BatchNorm2d(32)
-        self.conv1b = nn.Conv2d(32, 32, 3, 1, 1)
+        self.conv1b = nn.Conv2d(32, 32,
+                                3, 1, 1)
+
         self.bn1b = nn.BatchNorm2d(32)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1, 1)
+        self.conv2 = nn.Conv2d(32, 64,
+                               3, 1, 1)
+
         self.bn2 = nn.BatchNorm2d(64)
-        self.conv3 = nn.Conv2d(64, 128, 3, 1, 1)
+        self.conv3 = nn.Conv2d(64, 128,
+                               3, 1, 1)
         self.bn3 = nn.BatchNorm2d(128)
 
         self.pool = nn.MaxPool2d(2, 2)
