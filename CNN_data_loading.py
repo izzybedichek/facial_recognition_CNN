@@ -3,13 +3,12 @@ import torch
 import numpy as np
 
 from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader, ConcatDataset
+from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.transforms import v2
 from torch.utils.data.sampler import WeightedRandomSampler
-import copy
 
-from mini_helper_functions import get_mean_std, AugmentedMinorityDataset
+from mini_helper_functions import get_mean_std
 
 # Loading config
 def load_config(config_path):
@@ -19,18 +18,12 @@ def load_config(config_path):
 
 config = load_config('config.yaml')
 
+# making it run on Izzy's mac faster
 if config["device"] == "mps":
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 else:
     device = torch.device(config["device"])
 
-# Data Transformations
-"""
-ToTensor: 
-- converts an image from (height x width x channels) 
-- to (C x H x W) and 
-- normalizes pixel values to [0, 1]
-- converts image to pyTorch tensor"""
 
 # calculating ahead for Normalization
 generic_transform = v2.Compose([
@@ -47,14 +40,14 @@ generic_loader = DataLoader(generic_dataset,
 
 mean, std = get_mean_std(generic_loader)
 
-#-------Preprocessing--------
+# preprocessing (works better WITHOUT augmentation, but leaving commented out for display purposes)
 train_transform = v2.Compose([
-    v2.Grayscale(num_output_channels=1),
+    v2.Grayscale(num_output_channels=1), # double-ensuring everything is 1 channel
     #v2.RandomHorizontalFlip(p=0.5),
     #v2.RandomRotation(20),
-    v2.ToImage(),
-    v2.ToDtype(torch.float32, scale=True),
-    v2.Normalize(mean=[mean], std=[std]),
+    v2.ToImage(), # even though inputs are already images, this converts them into a tensor
+    v2.ToDtype(torch.float32, scale=True), # scales values between 0 and 1
+    v2.Normalize(mean=[mean], std=[std]), # normalizes values
     #v2.RandomErasing(p=0.2),
 ])
 
@@ -66,11 +59,13 @@ val_transform = transforms.Compose([ # only preprocessing
 ])
 
 
-# -----more preprocessing-----
-# Applying preprocessing to dataset
+### -----more preprocessing----- ###
+
+# applying preprocessing to dataset
 dataset_train_val = ImageFolder(config['data']['train_dir_izzy'], transform=train_transform)
 dataset_test  = ImageFolder(config['data']['test_dir_izzy'], transform=val_transform)
 
+# splitting training into training and validation
 dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [.8, .2])
 
 
@@ -78,7 +73,7 @@ dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [.
 #print(f"Train dataset size: {len(dataset_train)}")
 #print(f"Test dataset size: {len(dataset_test)}")
 
-# Weighted random sampling for testing data
+###------ weighted random sampling for training data -----###
 train_indices = dataset_train.indices
 train_targets = [dataset_train_val.targets[i] for i in train_indices]
 
@@ -96,16 +91,15 @@ class_weights_tensor = torch.tensor(
 
 #print(class_weights)
 
-#---------class weighting-------
-
 sample_weights = [class_weights[t] for t in train_targets]
 
+# weighted random sampling into 'sampler'
 sampler = WeightedRandomSampler(weights = sample_weights,
-                                num_samples = len(sample_weights)*3,
+                                num_samples = len(sample_weights),
                                 replacement=True)
 
 
-# train loader with weighted random sampling
+# train loader with weighted random sampling using 'sample'
 train_loader = DataLoader(dataset_train,
                           sampler = sampler,
                           batch_size = config["data"]["batch_size"],

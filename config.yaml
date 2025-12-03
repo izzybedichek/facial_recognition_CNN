@@ -17,9 +17,9 @@ data:
 # Training Configuration
 training:
   epochs: 30
-  learning_rate: 0.001
+  learning_rate: 0.0001
   optimizer: "AdamW" # not connected to code, purely descriptive
-  weight_decay: .03
+  weight_decay: .1
 
 # Hardware
 device: "mps"

@@ -199,29 +199,6 @@ def val_one_epoch(model, val_loader, criterion, device):
 
     return avg_loss, avg_acc, precision, recall, f1
 
-# from https://stackoverflow.com/questions/71998978/early-stopping-in-pytorch
-
-class EarlyStopper:
-    def __init__(self, patience=1, min_delta=0):
-        self.patience = patience
-        self.min_delta = min_delta
-        self.counter = 0
-        self.min_validation_loss = float('inf')
-        self.best_model = None
-
-    def early_stop(self, validation_loss, model=None):
-        if validation_loss < self.min_validation_loss:
-            self.min_validation_loss = validation_loss
-            self.counter = 0
-            if model is not None:
-                self.best_model = model.state_dict().copy()  # Save best weights
-        elif validation_loss > (self.min_validation_loss + self.min_delta):
-            self.counter += 1
-            if self.counter >= self.patience:
-                return True
-        return False
-
-
 class MulticlassSVMLoss(nn.Module):
     def __init__(self, margin=1.0):
         super().__init__()
@@ -245,3 +222,25 @@ class MulticlassSVMLoss(nn.Module):
 
         # average
         return loss.sum() / batch_size
+
+# from https://stackoverflow.com/questions/71998978/early-stopping-in-pytorch
+# DIDNT END USING
+class EarlyStopper:
+    def __init__(self, patience=1, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.min_validation_loss = float('inf')
+        self.best_model = None
+
+    def early_stop(self, validation_loss, model=None):
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+            if model is not None:
+                self.best_model = model.state_dict().copy()  # Save best weights
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False

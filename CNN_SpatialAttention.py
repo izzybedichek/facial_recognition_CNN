@@ -86,29 +86,29 @@ class CNN_SpatialAttention(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
         self.dropout = nn.Dropout(config["model"]["dropout"])
 
-        # ========== Classifier ==========
+        # fully connected layers
         self.fc1 = nn.Linear(128 * 6 * 6, 128)
         self.fc2 = nn.Linear(128, num_classes)
 
     def forward(self, x):
         # CNN feature extraction
         x = F.relu(self.bn1(self.conv1(x)))
-        #x = self.pool(x)
+        x = self.pool(x)
 
         x = F.relu(self.bn1b(self.conv1b(x)))
 
         x = F.relu(self.bn2(self.conv2(x)))
-        #x = self.pool(x)
+        x = self.pool(x)
 
         x = F.relu(self.bn3(self.conv3(x)))
-        #x = self.pool(x)
+        x = self.pool(x)
 
         # Apply spatial attention to feature maps
         x = self.spatial_attention(x)
 
         x = self.avgpool(x)
 
-        # Flatten and classify
+        # flatten/classify
         x = torch.flatten(x, 1)
         x = self.dropout(x)
         x = F.relu(self.fc1(x))
@@ -117,7 +117,7 @@ class CNN_SpatialAttention(nn.Module):
         return x
 
 
-# Option 2: Spatial attention on feature maps (more interpretable)
+
 model = CNN_SpatialAttention(
     in_channels=1,
     num_classes=config["model"]["num_classes"]
@@ -125,7 +125,7 @@ model = CNN_SpatialAttention(
 
 model = model.to(config['device'])
 
-criterion = MulticlassSVMLoss()
+criterion = MulticlassSVMLoss() # works best
 
 optimizer = optim.AdamW(
     model.parameters(),
