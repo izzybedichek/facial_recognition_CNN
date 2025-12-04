@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import torch
 from sklearn.metrics import precision_score, recall_score, f1_score, classification_report
 from torch import nn
+import numpy as np
+import cv2
+from types import MethodType
 
 def train_and_plot(model, train_loader, val_loader, optimizer, criterion, config, scheduler=None):
     """
@@ -222,6 +225,116 @@ class MulticlassSVMLoss(nn.Module):
 
         # average
         return loss.sum() / batch_size
+
+
+def visualize_attention(model, data_loader, config, device=None):
+    """
+    Visualizes spatial & channel attention for a single example.
+    Call with:
+        visualize_attention(model, val_loader, config)
+    """
+
+    if device is None:
+        device = config.get("device", "cpu")
+
+    # patch spatial attention to extract heatmap
+
+    def patch_spatial_attention(model):
+        for module in model.modules():
+            if module.__class__.__name__ == "SpatialAttention":
+
+                # keep original forward
+                original_forward = module.forward
+
+                # define wrapped forward
+                def new_forward(self, x):
+                    # channel attention
+                    channel_weight = self.channel_attention(x)
+                    self.channel_attention_output = channel_weight.detach().cpu()
+                    x = x * channel_weight
+
+                    # spatial attention
+                    avg_out = torch.mean(x, dim=1, keepdim=True)
+                    max_out, _ = torch.max(x, dim=1, keepdim=True)
+                    spatial_input = torch.cat([avg_out, max_out], dim=1)
+                    spatial_weight = self.spatial_attention(spatial_input)
+                    self.spatial_attention_output = spatial_weight.detach().cpu()
+
+                    return x * spatial_weight
+
+                # bind dynamically
+                module.forward = MethodType(new_forward, module)
+
+    patch_spatial_attention(model)
+
+    #overlay function
+
+    def overlay_heatmap(img, attn_map):
+        img = img.squeeze().cpu().numpy()
+        attn = attn_map.cpu().numpy()
+
+        attn = cv2.resize(attn, img.shape, interpolation=cv2.INTER_CUBIC)
+        attn_norm = (attn - attn.min()) / (attn.max() - attn.min() + 1e-8)
+
+        heatmap = cv2.applyColorMap((attn_norm * 255).astype(np.uint8), cv2.COLORMAP_JET)
+        heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+
+        img_rgb = np.stack([img, img, img], axis=2)
+        overlay = 0.5 * heatmap + 0.5 * img_rgb
+        overlay = overlay / overlay.max()
+        return overlay
+
+    # run sample thru model
+    model.eval()
+    sample = next(iter(data_loader))[0][0]  # first image of first batch
+    sample = sample.unsqueeze(0).to(device)
+
+    with torch.no_grad():
+        out = model(sample)
+
+    # retrieve attention maps
+    spatial_attn = None
+    channel_attn = None
+
+    for module in model.modules():
+        if module.__class__.__name__ == "SpatialAttention":
+            spatial_attn = module.spatial_attention_output[0, 0]
+            channel_attn = module.channel_attention_output[0, :, 0, 0]
+            break
+
+    # plotting
+    plt.figure(figsize=(15, 4))
+
+    # input
+    plt.subplot(1, 4, 1)
+    plt.title("Input Image")
+    plt.imshow(sample[0, 0].cpu(), cmap='gray')
+    plt.axis("off")
+
+    # spatial attn
+    plt.subplot(1, 4, 2)
+    plt.title("Spatial Attention")
+    plt.imshow(spatial_attn, cmap='jet')
+    plt.axis("off")
+
+    # overlay
+    plt.subplot(1, 4, 3)
+    plt.title("Overlay")
+    plt.imshow(overlay_heatmap(sample[0, 0], spatial_attn))
+    plt.axis("off")
+
+    # channel weights
+    plt.subplot(1, 4, 4)
+    plt.title("Channel Attention Weights")
+    plt.bar(range(len(channel_attn)), channel_attn.numpy())
+    plt.xlabel("Channel")
+    plt.tight_layout()
+
+    plt.show()
+
+    print("\nModel output logits:\n", out.cpu().numpy())
+
+
 
 # from https://stackoverflow.com/questions/71998978/early-stopping-in-pytorch
 # DIDNT END USING

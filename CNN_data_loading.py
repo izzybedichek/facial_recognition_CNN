@@ -10,7 +10,7 @@ from torch.utils.data.sampler import WeightedRandomSampler
 
 from mini_helper_functions import get_mean_std
 
-# Loading config
+# loading config
 def load_config(config_path):
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
@@ -29,6 +29,8 @@ else:
 generic_transform = v2.Compose([
     v2.Grayscale(num_output_channels=1),
     v2.ToImage(),
+    v2.CenterCrop(38),  # Remove outer 20%
+    v2.CenterCrop(43),  # Remove outer 10%
     v2.ToDtype(torch.float32, scale=True),
 ])
 
@@ -110,7 +112,8 @@ val_loader = DataLoader(dataset_val,
                         shuffle=False)
 
 
-# Verifying all the data got into the loader
+###----- Verifying all the data got into the loader---###
+
 #print('train size:', len(train_loader))
 
 # Verifying the batches and labels

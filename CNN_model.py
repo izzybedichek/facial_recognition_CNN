@@ -75,13 +75,12 @@ class CNN(nn.Module):
 
         x = F.relu(self.bn1b(self.conv1b(x)))
 
-        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.sigmoid(self.bn2(self.conv2(x)))
         x = self.pool(x)
 
         x = F.relu(self.bn2b(self.conv2b(x)))
 
         x = F.relu(self.bn3(self.conv3(x)))
-        x = self.pool(x)
 
         x = self.avgpool(x)
 
@@ -102,15 +101,15 @@ model = CNN(in_channels = 1,
 model = model.to(config['device'])
 
 #criterion = nn.CrossEntropyLoss(label_smoothing=0.6) # the label smoothing makes it equivalently useful as the MulticlassSVM loss
-criterion = MulticlassSVMLoss() # works better
+criterion = MulticlassSVMLoss() # works better in most cases
 
-optimizer = optim.AdamW(model.parameters(),
-                       lr = config['training']['learning_rate'],
-                       weight_decay= config["training"]["weight_decay"])
+# optimizer = optim.AdamW(model.parameters(),
+#                        lr = config['training']['learning_rate'],
+#                        weight_decay= config["training"]["weight_decay"])
 
-# optimizer = Lion(model.parameters(),
-#                  config['training']['learning_rate']/3,
-#                  weight_decay=config["training"]["weight_decay"])
+optimizer = Lion(model.parameters(),
+                 config['training']['learning_rate']/3,
+                 weight_decay=config["training"]["weight_decay"])
 
 scheduler = CosineAnnealingWarmRestarts( # I have found this to work better than ReduceLROnPlateau
     optimizer,

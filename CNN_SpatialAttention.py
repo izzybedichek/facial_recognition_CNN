@@ -1,8 +1,9 @@
 import torch
 from torch import nn
+import matplotlib.pyplot as plt
 import torch.optim as optim
 from CNN_data_loading import train_loader, val_loader, config
-from train_and_plot import train_and_plot, MulticlassSVMLoss
+from train_and_plot import train_and_plot, MulticlassSVMLoss, visualize_attention
 import torch.nn.functional as F
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
@@ -31,22 +32,19 @@ class SpatialAttention(nn.Module):
         )
 
     def forward(self, x):
-        """
-        Args:
-            x: [batch, channels, height, width]
-        Returns:
-            attention-weighted features [batch, channels, height, width]
-        """
-        # Channel attention
+        # channel attention
         channel_weight = self.channel_attention(x)
+        self.channel_attention_output = channel_weight.detach().cpu()
         x = x * channel_weight
 
-        # Spatial attention
+        # spatial attention
         avg_out = torch.mean(x, dim=1, keepdim=True)
         max_out, _ = torch.max(x, dim=1, keepdim=True)
         spatial_input = torch.cat([avg_out, max_out], dim=1)
         spatial_weight = self.spatial_attention(spatial_input)
-        x = x * spatial_weight
+        self.spatial_attention_output = spatial_weight.detach().cpu()
+
+        return x * spatial_weight
 
         return x
 
@@ -81,7 +79,9 @@ class CNN_SpatialAttention(nn.Module):
 
         # Spatial Attention
         # Apply before final pooling
-        self.spatial_attention = SpatialAttention(128)
+        self.spatial_attention1 = SpatialAttention(32)
+        self.spatial_attention2 = SpatialAttention(64)
+        self.spatial_attention3 = SpatialAttention(128)
 
         self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
         self.dropout = nn.Dropout(config["model"]["dropout"])
@@ -93,18 +93,19 @@ class CNN_SpatialAttention(nn.Module):
     def forward(self, x):
         # CNN feature extraction
         x = F.relu(self.bn1(self.conv1(x)))
+        x = self.spatial_attention1(x)
         x = self.pool(x)
 
         x = F.relu(self.bn1b(self.conv1b(x)))
 
         x = F.relu(self.bn2(self.conv2(x)))
+        x = self.spatial_attention2(x)
         x = self.pool(x)
 
         x = F.relu(self.bn3(self.conv3(x)))
-        x = self.pool(x)
 
         # Apply spatial attention to feature maps
-        x = self.spatial_attention(x)
+        x = self.spatial_attention3(x)
 
         x = self.avgpool(x)
 
@@ -138,6 +139,9 @@ scheduler = CosineAnnealingWarmRestarts(
     T_0=10,
     T_mult=2
 )
+
+
+visualize_attention(model, val_loader, config)
 
 loss_values = train_and_plot(
     model,
