@@ -29,8 +29,6 @@ else:
 generic_transform = v2.Compose([
     v2.Grayscale(num_output_channels=1),
     v2.ToImage(),
-    v2.CenterCrop(38),  # Remove outer 20%
-    v2.CenterCrop(43),  # Remove outer 10%
     v2.ToDtype(torch.float32, scale=True),
 ])
 
@@ -43,10 +41,18 @@ generic_loader = DataLoader(generic_dataset,
 mean, std = get_mean_std(generic_loader)
 
 # preprocessing (works better WITHOUT augmentation, but leaving commented out for display purposes)
+random_choices = [ # to make the model focus more on internal facial features over face outline
+    v2.CenterCrop(43),
+   # v2.CenterCrop(38),
+]
+
 train_transform = v2.Compose([
     v2.Grayscale(num_output_channels=1), # double-ensuring everything is 1 channel
     #v2.RandomHorizontalFlip(p=0.5),
     #v2.RandomRotation(20),
+    #v2.RandomChoice(random_choices),
+    #v2.CenterCrop(43),
+    v2.Resize((48,48)), # for the random crops
     v2.ToImage(), # even though inputs are already images, this converts them into a tensor
     v2.ToDtype(torch.float32, scale=True), # scales values between 0 and 1
     v2.Normalize(mean=[mean], std=[std]), # normalizes values
@@ -85,7 +91,7 @@ class_counts = np.bincount(train_targets)
 
 class_weights = 1.0 / class_counts
 
-class_weights_tensor = torch.tensor(
+class_weights_tensor = torch.tensor( # use this in loss OR use weights= sample_weights, using both causes obsession with class 1
     class_weights,
     dtype=torch.float32,
     device=device

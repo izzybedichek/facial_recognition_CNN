@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import matplotlib.pyplot as plt
 import torch.optim as optim
-from CNN_data_loading import train_loader, val_loader, config
+from CNN_data_loading import train_loader, val_loader, config, class_weights_tensor
 from train_and_plot import train_and_plot, MulticlassSVMLoss, visualize_attention
 import torch.nn.functional as F
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
@@ -16,14 +16,8 @@ class SpatialAttention(nn.Module):
 
     def __init__(self, in_channels):
         super(SpatialAttention, self).__init__()
-        # Channel attention
-        self.channel_attention = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(in_channels, in_channels // 8, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels // 8, in_channels, 1),
-            nn.Sigmoid()
-        )
+
+        # Getting rid of channel attention did not affect metrics, so removed to parse down
 
         # Spatial attention
         self.spatial_attention = nn.Sequential(
@@ -32,21 +26,19 @@ class SpatialAttention(nn.Module):
         )
 
     def forward(self, x):
-        # channel attention
-        channel_weight = self.channel_attention(x)
-        self.channel_attention_output = channel_weight.detach().cpu()
-        x = x * channel_weight
+        # Channel attention removed, see comment in Init
 
-        # spatial attention
+        # Spatial attention
         avg_out = torch.mean(x, dim=1, keepdim=True)
         max_out, _ = torch.max(x, dim=1, keepdim=True)
         spatial_input = torch.cat([avg_out, max_out], dim=1)
         spatial_weight = self.spatial_attention(spatial_input)
-        self.spatial_attention_output = spatial_weight.detach().cpu()
+
+        # Store BOTH versions
+        self.spatial_attention_output = spatial_weight.detach().cpu()  # For viz
+        self.spatial_attention_weights = spatial_weight  # For loss (has gradients)
 
         return x * spatial_weight
-
-        return x
 
 
 class CNN_SpatialAttention(nn.Module):
@@ -80,8 +72,6 @@ class CNN_SpatialAttention(nn.Module):
         # Spatial Attention
         # Apply before final pooling
         self.spatial_attention1 = SpatialAttention(32)
-        self.spatial_attention2 = SpatialAttention(64)
-        self.spatial_attention3 = SpatialAttention(128)
 
         self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
         self.dropout = nn.Dropout(config["model"]["dropout"])
@@ -95,24 +85,26 @@ class CNN_SpatialAttention(nn.Module):
         x = F.relu(self.bn1(self.conv1(x)))
         x = self.spatial_attention1(x)
         x = self.pool(x)
+        x = self.dropout(x)
 
         x = F.relu(self.bn1b(self.conv1b(x)))
 
         x = F.relu(self.bn2(self.conv2(x)))
-        x = self.spatial_attention2(x)
+        #x = self.spatial_attention2(x)
         x = self.pool(x)
+        x = self.dropout(x)
 
         x = F.relu(self.bn3(self.conv3(x)))
-
-        # Apply spatial attention to feature maps
-        x = self.spatial_attention3(x)
 
         x = self.avgpool(x)
 
         # flatten/classify
         x = torch.flatten(x, 1)
+
         x = self.dropout(x)
+
         x = F.relu(self.fc1(x))
+
         x = self.fc2(x)
 
         return x
@@ -126,7 +118,8 @@ model = CNN_SpatialAttention(
 
 model = model.to(config['device'])
 
-criterion = MulticlassSVMLoss() # works best
+criterion = nn.CrossEntropyLoss(label_smoothing=0.4)
+#criterion = MulticlassSVMLoss() # works best
 
 optimizer = optim.AdamW(
     model.parameters(),
@@ -136,7 +129,7 @@ optimizer = optim.AdamW(
 
 scheduler = CosineAnnealingWarmRestarts(
     optimizer,
-    T_0=10,
+    T_0=8,
     T_mult=2
 )
 

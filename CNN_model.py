@@ -73,10 +73,11 @@ class CNN(nn.Module):
         x = F.relu(self.bn1(self.conv1(x)))
         x = self.pool(x)
 
+        x = self.dropout(x)
+
         x = F.relu(self.bn1b(self.conv1b(x)))
 
-        x = F.sigmoid(self.bn2(self.conv2(x)))
-        x = self.pool(x)
+        x = F.relu(self.bn2(self.conv2(x)))
 
         x = F.relu(self.bn2b(self.conv2b(x)))
 
@@ -113,7 +114,7 @@ optimizer = Lion(model.parameters(),
 
 scheduler = CosineAnnealingWarmRestarts( # I have found this to work better than ReduceLROnPlateau
     optimizer,
-    T_0=10,  # restart every 10 epochs
+    T_0=8,  # restart every 10 epochs
     T_mult=2
 )
 

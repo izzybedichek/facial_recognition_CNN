@@ -226,115 +226,81 @@ class MulticlassSVMLoss(nn.Module):
         # average
         return loss.sum() / batch_size
 
+def get_attention_maps(model):
+    """Get all attention maps that were generated in the last forward pass"""
+    attention_maps = {}
 
-def visualize_attention(model, data_loader, config, device=None):
-    """
-    Visualizes spatial & channel attention for a single example.
-    Call with:
-        visualize_attention(model, val_loader, config)
-    """
+    if hasattr(model, 'spatial_attention1') and hasattr(model.spatial_attention1, 'spatial_attention_output'):
+        attention_maps['attention1'] = model.spatial_attention1.spatial_attention_output
 
-    if device is None:
-        device = config.get("device", "cpu")
+    if hasattr(model, 'spatial_attention2') and hasattr(model.spatial_attention2, 'spatial_attention_output'):
+        attention_maps['attention2'] = model.spatial_attention2.spatial_attention_output
 
-    # patch spatial attention to extract heatmap
+    if hasattr(model, 'spatial_attention3') and hasattr(model.spatial_attention3, 'spatial_attention_output'):
+        attention_maps['attention3'] = model.spatial_attention3.spatial_attention_output
 
-    def patch_spatial_attention(model):
-        for module in model.modules():
-            if module.__class__.__name__ == "SpatialAttention":
+    return attention_maps
 
-                # keep original forward
-                original_forward = module.forward
 
-                # define wrapped forward
-                def new_forward(self, x):
-                    # channel attention
-                    channel_weight = self.channel_attention(x)
-                    self.channel_attention_output = channel_weight.detach().cpu()
-                    x = x * channel_weight
-
-                    # spatial attention
-                    avg_out = torch.mean(x, dim=1, keepdim=True)
-                    max_out, _ = torch.max(x, dim=1, keepdim=True)
-                    spatial_input = torch.cat([avg_out, max_out], dim=1)
-                    spatial_weight = self.spatial_attention(spatial_input)
-                    self.spatial_attention_output = spatial_weight.detach().cpu()
-
-                    return x * spatial_weight
-
-                # bind dynamically
-                module.forward = MethodType(new_forward, module)
-
-    patch_spatial_attention(model)
-
-    #overlay function
-
-    def overlay_heatmap(img, attn_map):
-        img = img.squeeze().cpu().numpy()
-        attn = attn_map.cpu().numpy()
-
-        attn = cv2.resize(attn, img.shape, interpolation=cv2.INTER_CUBIC)
-        attn_norm = (attn - attn.min()) / (attn.max() - attn.min() + 1e-8)
-
-        heatmap = cv2.applyColorMap((attn_norm * 255).astype(np.uint8), cv2.COLORMAP_JET)
-        heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
-
-        img_rgb = np.stack([img, img, img], axis=2)
-        overlay = 0.5 * heatmap + 0.5 * img_rgb
-        overlay = overlay / overlay.max()
-        return overlay
-
-    # run sample thru model
+def visualize_attention(model, val_loader, config):
     model.eval()
-    sample = next(iter(data_loader))[0][0]  # first image of first batch
-    sample = sample.unsqueeze(0).to(device)
+
+    images, labels = next(iter(val_loader))
+    images = images.to(config["device"])
 
     with torch.no_grad():
-        out = model(sample)
+        _ = model(images)
 
-    # retrieve attention maps
-    spatial_attn = None
-    channel_attn = None
+    # Get all available attention maps
+    attention_maps = get_attention_maps(model)
 
-    for module in model.modules():
-        if module.__class__.__name__ == "SpatialAttention":
-            spatial_attn = module.spatial_attention_output[0, 0]
-            channel_attn = module.channel_attention_output[0, :, 0, 0]
-            break
+    if not attention_maps:
+        print("No attention maps available")
+        return
 
-    # plotting
-    plt.figure(figsize=(15, 4))
+    # Prepare image
+    img = images[0].cpu()
+    img_display = img.permute(1, 2, 0).numpy()
+    img_display = (img_display - img_display.min()) / (img_display.max() - img_display.min())
 
-    # input
-    plt.subplot(1, 4, 1)
-    plt.title("Input Image")
-    plt.imshow(sample[0, 0].cpu(), cmap='gray')
-    plt.axis("off")
+    n_maps = len(attention_maps)
+    n_total = n_maps + 1  # +1 for original image
 
-    # spatial attn
-    plt.subplot(1, 4, 2)
-    plt.title("Spatial Attention")
-    plt.imshow(spatial_attn, cmap='jet')
-    plt.axis("off")
+    # Create figure and axes
+    fig, axes = plt.subplots(1, n_total, figsize=(5 * n_total, 5))
 
-    # overlay
-    plt.subplot(1, 4, 3)
-    plt.title("Overlay")
-    plt.imshow(overlay_heatmap(sample[0, 0], spatial_attn))
-    plt.axis("off")
+    # Convert axes to list for consistent indexing (handles single subplot case)
+    if n_total == 1:
+        axes = [axes]
+    else:
+        axes = axes.flatten()  # Ensure it's a 1D array
 
-    # channel weights
-    plt.subplot(1, 4, 4)
-    plt.title("Channel Attention Weights")
-    plt.bar(range(len(channel_attn)), channel_attn.numpy())
-    plt.xlabel("Channel")
+    # Plot original image
+    axes[0].imshow(img_display)
+    axes[0].set_title('Original Image')
+    axes[0].axis('off')
+
+    # Plot each attention map
+    for idx, (name, attn) in enumerate(attention_maps.items(), start=1):
+        attn_map = attn[0, 0].numpy()
+
+        # Resize attention map to match image size
+        attn_resized = cv2.resize(
+            attn_map,
+            (img_display.shape[1], img_display.shape[0]),
+            interpolation=cv2.INTER_CUBIC
+        )
+
+        # Plot image with attention overlay
+        axes[idx].imshow(img_display)
+        axes[idx].imshow(attn_resized, alpha=1.0, cmap='jet')
+        axes[idx].set_title(name.replace('attention', 'Attention ').replace('_', ' '))
+        axes[idx].axis('off')
+
     plt.tight_layout()
-
-    plt.show()
-
-    print("\nModel output logits:\n", out.cpu().numpy())
-
-
+    plt.savefig('attention_visualization.png', dpi=150, bbox_inches='tight')
+    print(f"Saved visualization with {n_maps} attention map(s)")
+    plt.close()
 
 # from https://stackoverflow.com/questions/71998978/early-stopping-in-pytorch
 # DIDNT END USING
@@ -357,3 +323,5 @@ class EarlyStopper:
             if self.counter >= self.patience:
                 return True
         return False
+
+
