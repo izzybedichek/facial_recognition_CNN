@@ -8,6 +8,7 @@ import torch.optim as optim
 from lion_pytorch import Lion
 from sklearn.utils.class_weight import compute_class_weight
 import numpy as np
+from focal_loss import FocalLoss
 
 dataset_train = CNN_data_loading.train_loader
 dataset_val = CNN_data_loading.val_loader
@@ -29,15 +30,18 @@ class CNN(nn.Module):
         self.conv1b = nn.Conv2d(in_channels = 32, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.bn1b = nn.BatchNorm2d(32)
 
+        # max pool
+        self.maxpool = nn.AdaptiveMaxPool2d((12, 12))
+
         self.conv2 = nn.Conv2d(in_channels = 32, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.bn2 = nn.BatchNorm2d(64)
 
         self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size=3, stride=1, padding=1)
         self.bn3 = nn.BatchNorm2d(128)
 
-
         # max pool
-        self.maxpool = nn.AdaptiveMaxPool2d((12, 12))
+        self.maxpool2 = nn.AdaptiveMaxPool2d((6, 6))
+
  
         # convolutional layer block 2
         self.conv4 = nn.Conv2d(in_channels = 128, out_channels=256, kernel_size=3, stride=1, padding=1)
@@ -53,13 +57,13 @@ class CNN(nn.Module):
 
 
         # max pool
-        self.maxpool2 = nn.AdaptiveAvgPool2d((6, 6))
+        self.maxpool3 = nn.AdaptiveAvgPool2d((3, 3))
 
         # dropout
         self.dropout = nn.Dropout(config["model"]["dropout"])
 
         # fully connected/dense layer
-        self.fc1 = nn.Linear(256*6*6, 256)
+        self.fc1 = nn.Linear(256*3*3, 256)
         self.fc2 = nn.Linear(256, num_classes)
 
 
@@ -70,15 +74,18 @@ class CNN(nn.Module):
         
         x = F.leaky_relu(self.bn1(self.conv1(x)))
         x = F.leaky_relu(self.bn1b(self.conv1b(x)))
+
+        x = self.maxpool(x)
+
         x = F.leaky_relu(self.bn2(self.conv2(x)))
         x = F.leaky_relu(self.bn3(self.conv3(x)))
 
-        x = self.maxpool(x)
+        x = self.maxpool2(x)
 
         x = F.leaky_relu(self.bn4(self.conv4(x)))
         x = F.leaky_relu(self.bn4b(self.conv4b(x)))
 
-        x = self.maxpool2(x)
+        x = self.maxpool3(x)
 
         x = torch.flatten(x, 1)
 
@@ -109,8 +116,11 @@ class_weights_bal = compute_class_weight(
     y=train_targets
 )
 
+#class_weights_bal = torch.tensor(class_weights_bal, dtype=torch.float).to(device)
+#criterion = nn.CrossEntropyLoss(weight=class_weights_bal) # look into
+
 class_weights_bal = torch.tensor(class_weights_bal, dtype=torch.float).to(device)
-criterion = nn.CrossEntropyLoss(weight=class_weights_bal) # look into
+criterion = FocalLoss(alpha=class_weights_bal, gamma=2.0, reduction='mean')
 
 optimizer = optim.Adam(model.parameters(),
                        lr = config['training']['learning_rate'],
