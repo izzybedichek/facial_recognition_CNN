@@ -18,8 +18,6 @@ config = CNN_data_loading.config
 device = CNN_data_loading.device
 
 
-
-
 class SpatialAttention(nn.Module):
     """
     Spatial attention for 2D feature maps.
@@ -28,14 +26,8 @@ class SpatialAttention(nn.Module):
 
     def __init__(self, in_channels):
         super(SpatialAttention, self).__init__()
-        # Channel attention
-        self.channel_attention = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(in_channels, in_channels // 8, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels // 8, in_channels, 1),
-            nn.Sigmoid()
-        )
+
+        # Getting rid of channel attention did not affect metrics, so removed to parse down
 
         # Spatial attention
         self.spatial_attention = nn.Sequential(
@@ -44,24 +36,19 @@ class SpatialAttention(nn.Module):
         )
 
     def forward(self, x):
-        """
-        Args:
-            x: [batch, channels, height, width]
-        Returns:
-            attention-weighted features [batch, channels, height, width]
-        """
-        # Channel attention
-        channel_weight = self.channel_attention(x)
-        x = x * channel_weight
+        # Channel attention removed, see comment in Init
 
         # Spatial attention
         avg_out = torch.mean(x, dim=1, keepdim=True)
         max_out, _ = torch.max(x, dim=1, keepdim=True)
         spatial_input = torch.cat([avg_out, max_out], dim=1)
         spatial_weight = self.spatial_attention(spatial_input)
-        x = x * spatial_weight
 
-        return x
+        # Store BOTH versions
+        self.spatial_attention_output = spatial_weight.detach().cpu()  # For viz
+        self.spatial_attention_weights = spatial_weight  # For loss (has gradients)
+
+        return x * spatial_weight
 
 
 class CNN_SpatialAttention(nn.Module):
@@ -106,25 +93,28 @@ class CNN_SpatialAttention(nn.Module):
     def forward(self, x):
         # CNN feature extraction
         x = F.relu(self.bn1(self.conv1(x)))
+        x = self.spatial_attention1(x)
         x = self.pool(x)
+        x = self.dropout(x)
 
         x = F.relu(self.bn1b(self.conv1b(x)))
 
         x = F.relu(self.bn2(self.conv2(x)))
+        #x = self.spatial_attention2(x)
         x = self.pool(x)
+        x = self.dropout(x)
 
         x = F.relu(self.bn3(self.conv3(x)))
-        x = self.pool(x)
-
-        # Apply spatial attention to feature maps
-        x = self.spatial_attention(x)
 
         x = self.avgpool(x)
 
         # flatten/classify
         x = torch.flatten(x, 1)
+
         x = self.dropout(x)
+
         x = F.relu(self.fc1(x))
+
         x = self.fc2(x)
 
         return x
@@ -138,7 +128,8 @@ model = CNN_SpatialAttention(
 
 model = model.to(config['device'])
 
-criterion = MulticlassSVMLoss() # works best
+criterion = nn.CrossEntropyLoss(label_smoothing=0.4)
+# criterion = MulticlassSVMLoss() # works best
 
 
 # Get normalized class weights for focal loss
@@ -166,7 +157,7 @@ optimizer = optim.AdamW(
 
 scheduler = CosineAnnealingWarmRestarts(
     optimizer,
-    T_0=10,
+    T_0=8,
     T_mult=2
 )
 

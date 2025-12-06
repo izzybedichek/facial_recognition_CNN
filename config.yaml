@@ -2,7 +2,7 @@
 model:
   name: "CNN"
   num_classes: 7
-  dropout: 0.6
+  dropout: 0.25
   lstm_hidden: 128
 
 # Data Configuration
@@ -13,16 +13,16 @@ data:
   test_dir_izzy: "/Users/izzybedichek/Desktop/imp/grad_school/machine_learning/facial_recognition_CNN/data/test"
   train_dir_emily: "/Users/huang/Documents/NEU_Code/data/train"
   test_dir_emily: "/Users/huang/Documents/NEU_Code/data/test"
-  batch_size: 64
+  batch_size: 100
   image_size: [48, 48]
-  weighted_sampling: false
+  weighted_sampling: true
 
 # Training Configuration
 training:
-  epochs: 8
+  epochs: 14
   learning_rate: 0.0001
-  optimizer: "Adam" # not connected to code yet
-  weight_decay: .0001
+  optimizer: "Lion" # not connected to code yet
+  weight_decay: .1
 
 # Hardware
 device: "cuda"
