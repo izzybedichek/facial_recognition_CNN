@@ -54,11 +54,15 @@ mean, std = get_mean_std(generic_loader)
 # Preprocessing steps
 train_transform = v2.Compose([
     v2.Grayscale(num_output_channels=1), # preprocessing
-    v2.RandomHorizontalFlip(), # augmenting
+    #v2.RandomHorizontalFlip(p=0.5),
+    #v2.RandomRotation(20),
+    #v2.RandomChoice(random_choices),
+    #v2.CenterCrop(43),
     v2.ColorJitter(brightness=(0.5, 1.5), contrast=(0.8, 1.2)), # brightness and contrast augmentation
     v2.ToImage(), # preprocessing
     v2.ToDtype(torch.float32, scale=True), # preprocessing
     v2.Normalize(mean=mean, std=std), # preprocessing
+    #v2.RandomErasing(p=0.2),
 ])
 
 val_transform = transforms.Compose([ # only preprocessing
@@ -90,7 +94,11 @@ if config.get("weighted_sampling", False):
 
     class_weights = 1.0 / class_counts
 
-    #print(class_weights)
+    class_weights_tensor = torch.tensor( # use this in loss OR use weights= sample_weights, using both causes obsession with class 1
+    class_weights,
+    dtype=torch.float32,
+    device=device
+    )
 
     sample_weights = [class_weights[t] for t in train_targets]
 
