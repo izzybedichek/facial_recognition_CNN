@@ -9,6 +9,8 @@ from lion_pytorch import Lion
 from sklearn.utils.class_weight import compute_class_weight
 import numpy as np
 from focal_loss import FocalLoss
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+
 
 from train_and_plot import evaluate_testset
 import CNN_SpatialAttention
@@ -143,6 +145,12 @@ optimizer = optim.Adam(model.parameters(),
 #optimizer = Lion(model.parameters(),
 #                 config['training']['learning_rate'],
 #                 weight_decay=config["training"]["weight_decay"])
+
+scheduler = CosineAnnealingWarmRestarts(
+    optimizer,
+    T_0=8,
+    T_mult=2
+)
 
 loss_values = train_and_plot.train_and_plot(model,
                                         dataset_train,
