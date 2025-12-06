@@ -65,6 +65,7 @@ train_transform = v2.Compose([
     #v2.RandomErasing(p=0.2),
 ])
 
+#use for validation and test dataset (no data augmentation)
 val_transform = transforms.Compose([ # only preprocessing
     v2.Grayscale(num_output_channels=1),
     v2.ToImage(),
@@ -72,26 +73,49 @@ val_transform = transforms.Compose([ # only preprocessing
     v2.Normalize(mean=mean, std=std),
 ])
 
-# Applying preprocessing to dataset
-dataset_train_val = ImageFolder("/Users/huang/Documents/NEU_Code/data/train", transform=train_transform)
+# Wrapper class
+class TransformDataset(torch.utils.data.Dataset):
+    def __init__(self, subset, transform=None):
+        self.subset = subset
+        self.transform = transform
+    
+    def __getitem__(self, idx):
+        image, label = self.subset[idx]
+        if self.transform:
+            image = self.transform(image)
+        return image, label
+    
+    def __len__(self):
+        return len(self.subset)
+    
+    @property
+    def targets(self):
+        return [self.subset.dataset.targets[i] for i in self.subset.indices]
+
+# Load in datasets
+# train dataset has no preprocessing applied yet since we need to split the validation from it first
+base_train_dataset = ImageFolder("/Users/huang/Documents/NEU_Code/data/train")
 dataset_test  = ImageFolder("/Users/huang/Documents/NEU_Code/data/test", transform=val_transform)
 
-dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [.9, .1])
+# Split base_train to validation and train datasets
+dataset_train, dataset_val = torch.utils.data.random_split(base_train_dataset, [.9, .1])
+
+# Apply transforms to train and validation
+dataset_train = TransformDataset(dataset_train, transform=train_transform)
+dataset_val = TransformDataset(dataset_val, transform=val_transform)
 
 # Verifying we have the whole dataset
 print(f"Train dataset size: {len(dataset_train)}")
+print(f"Validation dataset size: {len(dataset_val)}")
 print(f"Test dataset size: {len(dataset_test)}")
 
 # If weighted sampling is true in config > load training data with weighted sampling
-if config.get("weighted_sampling", False):
+if config["data"].get("weighted_sampling", False):
+    print("Using weighted random sampling")
     # Weighted random sampling for testing data
-    train_indices = dataset_train.indices
-    train_targets = [dataset_train_val.targets[i] for i in train_indices]
+    train_targets = dataset_train.targets
 
     class_counts = np.bincount(train_targets)
-
-    #print(class_counts)
-
     class_weights = 1.0 / class_counts
 
     class_weights_tensor = torch.tensor( # use this in loss OR use weights= sample_weights, using both causes obsession with class 1
@@ -112,6 +136,7 @@ if config.get("weighted_sampling", False):
                             batch_size = config["data"]["batch_size"],
                             shuffle = False) # Shuffle OR sampler, not both
 else:
+     print("Using non-weighted training dataset")
      # Loading the dataset with regular random sampling with Shuffle
      train_loader = DataLoader(dataset_train,
                               batch_size = config["data"]["batch_size"],
