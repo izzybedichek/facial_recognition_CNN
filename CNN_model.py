@@ -43,6 +43,9 @@ class CNN(nn.Module):
         self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size=3, stride=1, padding=1)
         self.bn3 = nn.BatchNorm2d(128)
 
+        # first spatial attention layer
+        self.attention1 = SpatialAttention(128)
+
         # max pool
         self.maxpool2 = nn.AdaptiveMaxPool2d((6, 6))
 
@@ -86,6 +89,7 @@ class CNN(nn.Module):
         x = F.leaky_relu(self.bn2(self.conv2(x)))
         x = F.leaky_relu(self.bn3(self.conv3(x)))
 
+        x = self.attention1(x)
         x = self.maxpool2(x)
 
         x = F.leaky_relu(self.bn4(self.conv4(x)))
