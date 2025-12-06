@@ -2,7 +2,7 @@
 model:
   name: "CNN"
   num_classes: 7
-  dropout: 0.25
+  dropout: 0.5 # for dense layer
   lstm_hidden: 128
 
 # Data Configuration
@@ -19,10 +19,10 @@ data:
 
 # Training Configuration
 training:
-  epochs: 14
-  learning_rate: 0.0001
+  epochs: 20
+  learning_rate: 0.0005
   optimizer: "Lion" # not connected to code yet
-  weight_decay: .1
+  weight_decay: .0001
 
 # Hardware
 device: "cuda"

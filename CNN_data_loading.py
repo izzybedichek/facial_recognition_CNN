@@ -54,8 +54,8 @@ mean, std = get_mean_std(generic_loader)
 # Preprocessing steps
 train_transform = v2.Compose([
     v2.Grayscale(num_output_channels=1), # preprocessing
-    #v2.RandomHorizontalFlip(p=0.5),
-    #v2.RandomRotation(20),
+    v2.RandomHorizontalFlip(p=0.5),
+    v2.RandomRotation(degrees=15),
     #v2.RandomChoice(random_choices),
     #v2.CenterCrop(43),
     v2.ColorJitter(brightness=(0.5, 1.5), contrast=(0.8, 1.2)), # brightness and contrast augmentation

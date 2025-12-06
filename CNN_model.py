@@ -121,7 +121,8 @@ class_weights_bal = compute_class_weight(
 )
 
 class_weights_bal = torch.tensor(class_weights_bal, dtype=torch.float).to(device)
-criterion = nn.CrossEntropyLoss(weight=class_weights_bal) # look into
+# criterion = nn.CrossEntropyLoss(weight=class_weights_bal) # look into
+criterion = nn.CrossEntropyLoss()
 
 # class_weights_bal = torch.tensor(class_weights_bal, dtype=torch.float).to(device)
 # criterion = FocalLoss(alpha=class_weights_bal, gamma=2.0, reduction='mean')
