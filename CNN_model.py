@@ -148,8 +148,9 @@ optimizer = optim.Adam(model.parameters(),
 
 scheduler = CosineAnnealingWarmRestarts(
     optimizer,
-    T_0=8,
-    T_mult=2
+    T_0=5,
+    T_mult=2,
+    eta_min=1e-6
 )
 
 loss_values = train_and_plot.train_and_plot(model,
@@ -157,7 +158,8 @@ loss_values = train_and_plot.train_and_plot(model,
                                         dataset_val,
                                         optimizer,
                                         criterion,
-                                        config)
+                                        config,
+                                        scheduler=scheduler)
 
 
 print("\n" + "="*60)
