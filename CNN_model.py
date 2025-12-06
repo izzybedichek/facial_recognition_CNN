@@ -10,8 +10,10 @@ from sklearn.utils.class_weight import compute_class_weight
 import numpy as np
 from focal_loss import FocalLoss
 
+from train_and_plot import evaluate_testset
 dataset_train = CNN_data_loading.train_loader
 dataset_val = CNN_data_loading.val_loader
+dataset_test = CNN_data_loading.test_loader
 config = CNN_data_loading.config
 device = CNN_data_loading.device
 
@@ -49,11 +51,11 @@ class CNN(nn.Module):
         self.conv4b = nn.Conv2d(in_channels = 256, out_channels=256, kernel_size=3, stride=1, padding=1)
         self.bn4b = nn.BatchNorm2d(256)
 
-        # self.conv5 = nn.Conv2d(in_channels = 32, out_channels=64, kernel_size=3, stride=1, padding=1)
-        # self.bn5 = nn.BatchNorm2d(64)
+        self.conv5 = nn.Conv2d(in_channels = 256, out_channels=512, kernel_size=3, stride=1, padding=1)
+        self.bn5 = nn.BatchNorm2d(512)
 
-        # self.conv6 = nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size=3, stride=1, padding=1)
-        # self.bn36 = nn.BatchNorm2d(128)
+        self.conv6 = nn.Conv2d(in_channels = 512, out_channels = 512, kernel_size=3, stride=1, padding=1)
+        self.bn6 = nn.BatchNorm2d(512)
 
 
         # max pool
@@ -63,8 +65,8 @@ class CNN(nn.Module):
         self.dropout = nn.Dropout(config["model"]["dropout"])
 
         # fully connected/dense layer
-        self.fc1 = nn.Linear(256*3*3, 256)
-        self.fc2 = nn.Linear(256, num_classes)
+        self.fc1 = nn.Linear(512*3*3, 512)
+        self.fc2 = nn.Linear(512, num_classes)
 
 
     def forward(self, x):
@@ -84,6 +86,8 @@ class CNN(nn.Module):
 
         x = F.leaky_relu(self.bn4(self.conv4(x)))
         x = F.leaky_relu(self.bn4b(self.conv4b(x)))
+        x = F.relu(self.bn5(self.conv5(x)))
+        x = F.relu(self.bn6(self.conv6(x)))
 
         x = self.maxpool3(x)
 
@@ -116,11 +120,11 @@ class_weights_bal = compute_class_weight(
     y=train_targets
 )
 
-#class_weights_bal = torch.tensor(class_weights_bal, dtype=torch.float).to(device)
-#criterion = nn.CrossEntropyLoss(weight=class_weights_bal) # look into
-
 class_weights_bal = torch.tensor(class_weights_bal, dtype=torch.float).to(device)
-criterion = FocalLoss(alpha=class_weights_bal, gamma=2.0, reduction='mean')
+criterion = nn.CrossEntropyLoss(weight=class_weights_bal) # look into
+
+# class_weights_bal = torch.tensor(class_weights_bal, dtype=torch.float).to(device)
+# criterion = FocalLoss(alpha=class_weights_bal, gamma=2.0, reduction='mean')
 
 optimizer = optim.Adam(model.parameters(),
                        lr = config['training']['learning_rate'],
@@ -138,3 +142,9 @@ loss_values = train_and_plot.train_and_plot(model,
                                         config)
 
 
+print("\n" + "="*60)
+print("TRAINING COMPLETE - EVALUATING ON TEST SET")
+print("="*60)
+
+# Evaluate on the test dataset and display classification report
+y_true, y_pred = evaluate_testset(model, dataset_test, device)
