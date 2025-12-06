@@ -11,6 +11,8 @@ import numpy as np
 from focal_loss import FocalLoss
 
 from train_and_plot import evaluate_testset
+import CNN_SpatialAttention
+from CNN_SpatialAttention import SpatialAttention
 dataset_train = CNN_data_loading.train_loader
 dataset_val = CNN_data_loading.val_loader
 dataset_test = CNN_data_loading.test_loader
@@ -57,6 +59,8 @@ class CNN(nn.Module):
         self.conv6 = nn.Conv2d(in_channels = 512, out_channels = 512, kernel_size=3, stride=1, padding=1)
         self.bn6 = nn.BatchNorm2d(512)
 
+        # ADD ATTENTION HERE - before final pooling
+        self.attention2 = SpatialAttention(512)
 
         # max pool
         self.maxpool3 = nn.AdaptiveAvgPool2d((3, 3))
@@ -89,6 +93,7 @@ class CNN(nn.Module):
         x = F.relu(self.bn5(self.conv5(x)))
         x = F.relu(self.bn6(self.conv6(x)))
 
+        x = self.attention2(x)
         x = self.maxpool3(x)
 
         x = torch.flatten(x, 1)
