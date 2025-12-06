@@ -109,9 +109,17 @@ else:
                               batch_size = config["data"]["batch_size"],
                               shuffle = True)
 
+# Validation dataset
 val_loader = DataLoader(dataset_val,
                         batch_size = config["data"]["batch_size"],
                         shuffle=False)
+
+# Test dataset
+test_loader = DataLoader(
+    dataset_test, 
+    batch_size=config["data"]["batch_size"],
+    shuffle=False  # Don't shuffle test data
+)
 
 
 # Verifying all the data got into the loader
