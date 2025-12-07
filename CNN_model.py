@@ -9,10 +9,10 @@ from lion_pytorch import Lion
 from sklearn.utils.class_weight import compute_class_weight
 import numpy as np
 from focal_loss import FocalLoss
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau
 
 
-from train_and_plot import evaluate_testset
+from train_and_plot import evaluate_testset, MulticlassSVMLoss, MulticlassSVMLossL2
 import CNN_SpatialAttention
 from CNN_SpatialAttention import SpatialAttention
 dataset_train = CNN_data_loading.train_loader
@@ -133,7 +133,9 @@ class_weights_bal = compute_class_weight(
 
 class_weights_bal = torch.tensor(class_weights_bal, dtype=torch.float).to(device)
 # criterion = nn.CrossEntropyLoss(weight=class_weights_bal) # look into
-criterion = nn.CrossEntropyLoss()
+# criterion = nn.CrossEntropyLoss()
+# criterion = nn.CrossEntropyLoss(label_smoothing=0.4)
+criterion = MulticlassSVMLossL2() # works best
 
 # class_weights_bal = torch.tensor(class_weights_bal, dtype=torch.float).to(device)
 # criterion = FocalLoss(alpha=class_weights_bal, gamma=2.0, reduction='mean')
@@ -146,12 +148,22 @@ optimizer = optim.Adam(model.parameters(),
 #                 config['training']['learning_rate'],
 #                 weight_decay=config["training"]["weight_decay"])
 
+# scheduler = ReduceLROnPlateau(
+#     optimizer,
+#     mode='min',
+#     factor=0.5,      # Reduce LR by half
+#     patience=3,      # After 3 epochs of no improvement
+#     verbose=True,
+#     min_lr=1e-6
+# )
+
+
 scheduler = CosineAnnealingWarmRestarts(
     optimizer,
     T_0=5,
-    T_mult=2,
-    eta_min=1e-6
+    T_mult=2
 )
+
 
 loss_values = train_and_plot.train_and_plot(model,
                                         dataset_train,
