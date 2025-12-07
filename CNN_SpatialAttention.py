@@ -6,7 +6,7 @@ from CNN_data_loading import train_loader, val_loader, config, class_weights_ten
 from train_and_plot import train_and_plot, MulticlassSVMLoss, visualize_attention
 import torch.nn.functional as F
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-
+from lion_pytorch import Lion
 
 class SpatialAttention(nn.Module):
     """
@@ -38,7 +38,7 @@ class SpatialAttention(nn.Module):
         self.spatial_attention_output = spatial_weight.detach().cpu()  # For viz
         self.spatial_attention_weights = spatial_weight  # For loss (has gradients)
 
-        return x * spatial_weight
+        return x + x * (spatial_weight - 0.5)
 
 
 class CNN_SpatialAttention(nn.Module):
@@ -69,8 +69,7 @@ class CNN_SpatialAttention(nn.Module):
 
         self.pool = nn.MaxPool2d(2, 2)
 
-        # Spatial Attention
-        # Apply before final pooling
+        # spatial attention (must come before final pooling to work properly)
         self.spatial_attention1 = SpatialAttention(32)
 
         self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
@@ -90,7 +89,6 @@ class CNN_SpatialAttention(nn.Module):
         x = F.relu(self.bn1b(self.conv1b(x)))
 
         x = F.relu(self.bn2(self.conv2(x)))
-        #x = self.spatial_attention2(x)
         x = self.pool(x)
         x = self.dropout(x)
 
@@ -109,8 +107,6 @@ class CNN_SpatialAttention(nn.Module):
 
         return x
 
-
-
 model = CNN_SpatialAttention(
     in_channels=1,
     num_classes=config["model"]["num_classes"]
@@ -118,14 +114,19 @@ model = CNN_SpatialAttention(
 
 model = model.to(config['device'])
 
-criterion = nn.CrossEntropyLoss(label_smoothing=0.4)
+criterion = nn.CrossEntropyLoss(label_smoothing=0.7)
 #criterion = MulticlassSVMLoss() # works best
 
-optimizer = optim.AdamW(
+optimizer = Lion(
     model.parameters(),
-    lr=config['training']['learning_rate'],
-    weight_decay=config["training"]["weight_decay"]
-)
+    config['training']['learning_rate'],
+    weight_decay=config["training"]["weight_decay"])
+
+# optimizer = optim.AdamW(
+#     model.parameters(),
+#     lr=config['training']['learning_rate'],
+#     weight_decay=config["training"]["weight_decay"]
+# )
 
 scheduler = CosineAnnealingWarmRestarts(
     optimizer,
@@ -133,8 +134,6 @@ scheduler = CosineAnnealingWarmRestarts(
     T_mult=2
 )
 
-
-visualize_attention(model, val_loader, config)
 
 loss_values = train_and_plot(
     model,
@@ -145,3 +144,6 @@ loss_values = train_and_plot(
     config,
     scheduler=scheduler
 )
+
+if hasattr(model, 'spatial_attention1'):
+    visualize_attention(model, val_loader, config)

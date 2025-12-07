@@ -43,3 +43,23 @@ def train(model, dataset, device, epochs, lr):
             running_loss += loss.item()
         print(f"Epoch {epoch+1}/{epochs}, Loss: {running_loss/len(loader):.4f}")
 
+
+class TransformSubset(torch.utils.data.Dataset):
+    def __init__(self, subset, transform=None):
+        self.subset = subset
+        self.transform = transform
+
+    def __getitem__(self, idx):
+        x, y = self.subset[idx]
+        if self.transform:
+            x = self.transform(x)
+        return x, y
+
+    def __len__(self):
+        return len(self.subset)
+
+    @property
+    def indices(self):
+        """Expose the underlying indices from Subset"""
+        return self.subset.indices
+
