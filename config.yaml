@@ -13,7 +13,7 @@ data:
   test_dir_izzy: "/Users/izzybedichek/Desktop/imp/grad_school/machine_learning/facial_recognition_CNN/data/test"
   train_dir_emily: "/Users/huang/Documents/NEU_Code/data/train"
   test_dir_emily: "/Users/huang/Documents/NEU_Code/data/test"
-  batch_size: 100
+  batch_size: 64
   image_size: [48, 48]
   weighted_sampling: true
 
