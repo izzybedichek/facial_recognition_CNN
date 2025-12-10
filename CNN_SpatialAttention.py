@@ -38,7 +38,7 @@ class SpatialAttention(nn.Module):
         self.spatial_attention_output = spatial_weight.detach().cpu()  # For viz
         self.spatial_attention_weights = spatial_weight  # For loss (has gradients)
 
-        return x + x * (spatial_weight - 0.5)
+        return x * (1 + torch.tanh(spatial_weight))
 
 
 class CNN_SpatialAttention(nn.Module):
@@ -63,10 +63,6 @@ class CNN_SpatialAttention(nn.Module):
                                kernel_size=3, stride=1, padding=1)
         self.bn2 = nn.BatchNorm2d(64)
 
-        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128,
-                               kernel_size=3, stride=1, padding=1)
-        self.bn3 = nn.BatchNorm2d(128)
-
         self.pool = nn.MaxPool2d(2, 2)
 
         # spatial attention (must come before final pooling to work properly)
@@ -76,8 +72,8 @@ class CNN_SpatialAttention(nn.Module):
         self.dropout = nn.Dropout(config["model"]["dropout"])
 
         # fully connected layers
-        self.fc1 = nn.Linear(128 * 6 * 6, 128)
-        self.fc2 = nn.Linear(128, num_classes)
+        self.fc1 = nn.Linear(64 * 6 * 6, 64)
+        self.fc2 = nn.Linear(64, num_classes)
 
     def forward(self, x):
         # CNN feature extraction
@@ -89,10 +85,6 @@ class CNN_SpatialAttention(nn.Module):
         x = F.relu(self.bn1b(self.conv1b(x)))
 
         x = F.relu(self.bn2(self.conv2(x)))
-        x = self.pool(x)
-        x = self.dropout(x)
-
-        x = F.relu(self.bn3(self.conv3(x)))
 
         x = self.avgpool(x)
 
@@ -114,19 +106,19 @@ model = CNN_SpatialAttention(
 
 model = model.to(config['device'])
 
-criterion = nn.CrossEntropyLoss(label_smoothing=0.7)
+criterion = nn.CrossEntropyLoss(label_smoothing=0.6)
 #criterion = MulticlassSVMLoss() # works best
 
-optimizer = Lion(
-    model.parameters(),
-    config['training']['learning_rate'],
-    weight_decay=config["training"]["weight_decay"])
-
-# optimizer = optim.AdamW(
+# optimizer = Lion(
 #     model.parameters(),
-#     lr=config['training']['learning_rate'],
-#     weight_decay=config["training"]["weight_decay"]
-# )
+#     config['training']['learning_rate'],
+#     weight_decay=config["training"]["weight_decay"])
+
+optimizer = optim.AdamW(
+    model.parameters(),
+    lr=config['training']['learning_rate'],
+    weight_decay=config["training"]["weight_decay"]
+)
 
 scheduler = CosineAnnealingWarmRestarts(
     optimizer,

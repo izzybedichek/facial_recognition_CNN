@@ -41,20 +41,20 @@ mean, std = get_mean_std(generic_loader)
 ###---- preprocessing (works better WITHOUT augmentation, but leaving commented out for display purposes)---###
 random_choices = [ # to make the model focus more on internal facial features over face outline
     v2.CenterCrop(43),
-   # v2.CenterCrop(38),
+    v2.CenterCrop(38),
 ]
 
 train_transform = v2.Compose([
     v2.Grayscale(num_output_channels=1), # double-ensuring everything is 1 channel
     #v2.RandomHorizontalFlip(p=0.5),
     #v2.RandomRotation(20),
-    v2.RandomChoice(random_choices),
+    #v2.RandomChoice(random_choices),
     #v2.CenterCrop(43),
-    v2.Resize((48,48)), # for the random crops
+    #v2.Resize((48,48)), # for the random crops
     v2.ToImage(), # even though inputs are already images, this converts them into a tensor
     v2.ToDtype(torch.float32, scale=True), # scales values between 0 and 1
     v2.Normalize(mean=[mean], std=[std]), # normalizes values
-    v2.RandomErasing(p=0.2),
+    #v2.RandomErasing(p=0.2),
 ])
 
 val_transform = transforms.Compose([ # only preprocessing
